@@ -1,0 +1,964 @@
+<!DOCTYPE html>
+<html lang="es" class="h-full bg-slate-100">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Cotizaciones Web | Soluciones MG</title>
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            brand: {
+              50: '#f0f9ff',
+              100: '#e0f2fe',
+              500: '#0284c7',
+              600: '#0369a1',
+              700: '#0f172a',
+            }
+          }
+        }
+      }
+    };
+  </script>
+  <!-- Google Fonts: Inter -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+
+  <style>
+    body {
+      font-family: 'Inter', system-ui, -apple-system, sans-serif;
+      -webkit-tap-highlight-color: transparent;
+    }
+    
+    /* Scrollbar estilizada */
+    ::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    ::-webkit-scrollbar-track {
+      background: #f1f5f9;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #cbd5e1;
+      border-radius: 9999px;
+    }
+
+    /* Estilos de impresión (PDF de alta calidad) */
+    @media print {
+      .no-print {
+        display: none !important;
+      }
+      body {
+        background-color: #ffffff !important;
+        color: #000000 !important;
+      }
+      .print-container {
+        max-width: 100% !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        box-shadow: none !important;
+      }
+      .page-break {
+        page-break-inside: avoid;
+      }
+    }
+  </style>
+</head>
+<body class="h-full text-slate-800 antialiased selection:bg-slate-200">
+
+  <!-- ALERTA / TOAST DE NOTIFICACIÓN -->
+  <div id="toast" class="fixed top-5 right-5 z-50 transform transition-all duration-300 translate-y-[-100px] opacity-0 pointer-events-none">
+    <div class="flex items-center gap-3 bg-slate-900 text-white px-5 py-3.5 rounded-2xl shadow-xl text-sm font-medium">
+      <span id="toast-icon">✨</span>
+      <span id="toast-msg">Notificación</span>
+    </div>
+  </div>
+
+  <!-- VISTA CLIENTE (SOLO COTIZACIÓN) -->
+  <div id="client-view" class="hidden min-h-screen bg-slate-100 py-4 px-3 sm:py-8 sm:px-4">
+    <div class="max-w-[460px] mx-auto print-container">
+      
+      <!-- Barra superior sutil de acciones en cliente -->
+      <div class="no-print mb-4 flex items-center justify-between px-1">
+        <a href="?" id="btn-create-new" class="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-500 hover:text-slate-900 transition-colors bg-white px-3 py-1.5 rounded-full shadow-sm border border-slate-200">
+          <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+          Crear nueva
+        </a>
+        <button onclick="window.print()" class="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-600 hover:text-slate-900 transition-colors bg-white px-3 py-1.5 rounded-full shadow-sm border border-slate-200">
+          <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"/></svg>
+          Imprimir / PDF
+        </button>
+      </div>
+
+      <!-- TARJETA PRINCIPAL CONTENEDORA -->
+      <div class="space-y-4">
+
+        <!-- 1. ENCABEZADO DEL NEGOCIO -->
+        <div class="bg-white rounded-3xl p-6 shadow-sm border border-slate-200/80">
+          <div class="flex items-start gap-4">
+            <!-- Logo o Avatar -->
+            <div id="c-logo-container" class="w-14 h-14 rounded-2xl flex-shrink-0 flex items-center justify-center font-bold text-xl overflow-hidden shadow-sm">
+              <span id="c-logo-initials" class="text-white">MG</span>
+              <img id="c-logo-img" src="" alt="Logo" class="w-full h-full object-cover hidden" onerror="this.classList.add('hidden'); document.getElementById('c-logo-initials').classList.remove('hidden');">
+            </div>
+            
+            <div class="min-w-0 flex-1">
+              <h1 id="c-biz-name" class="font-bold text-lg text-slate-900 leading-snug truncate">Soluciones MG · Hospital de Calentadores</h1>
+              <p class="text-xs text-slate-500 mt-1 flex flex-wrap items-center gap-x-1.5 gap-y-0.5">
+                <span id="c-biz-phone">55 1234 5678</span>
+                <span class="text-slate-300">·</span>
+                <span id="c-biz-email" class="truncate">contacto@solucionesmg.com</span>
+              </p>
+            </div>
+          </div>
+
+          <div class="mt-4 pt-4 border-t border-slate-100 flex items-center justify-between text-xs text-slate-500 font-medium">
+            <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-slate-100 text-slate-700 font-semibold">
+              Cotización · <span id="c-folio">Folio 001</span>
+            </span>
+            <span id="c-date">22/11/2026</span>
+          </div>
+        </div>
+
+        <!-- 2. TARJETA DESTACADA DEL TOTAL -->
+        <div class="bg-slate-900 text-white rounded-3xl p-6 shadow-md relative overflow-hidden">
+          <div class="absolute -right-6 -bottom-6 w-32 h-32 bg-white/5 rounded-full blur-2xl pointer-events-none"></div>
+          
+          <div class="flex items-end justify-between">
+            <div>
+              <span class="text-xs uppercase tracking-wider text-slate-400 font-semibold">Monto Total</span>
+              <p id="c-tax-label" class="text-xs text-slate-300 mt-0.5">IVA incluido</p>
+            </div>
+            <div class="text-right">
+              <div id="c-total-display" class="text-3xl sm:text-4xl font-extrabold tracking-tight">
+                $0<span class="text-lg font-bold opacity-80">.00</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 3. CUERPO DE LA COTIZACIÓN (DETALLE) -->
+        <div class="bg-white rounded-3xl p-6 shadow-sm border border-slate-200/80 space-y-6">
+          
+          <!-- Cliente -->
+          <div class="bg-slate-50 rounded-2xl p-4 border border-slate-100">
+            <span class="text-xs font-semibold uppercase tracking-wider text-slate-400 block mb-1">Para el cliente:</span>
+            <p id="c-client-name" class="font-bold text-slate-900 text-base">Cliente General</p>
+          </div>
+
+          <!-- Conceptos -->
+          <div>
+            <h3 class="text-xs font-bold uppercase tracking-wider text-slate-400 mb-3 px-1">Lo que incluye:</h3>
+            <div id="c-items-list" class="divide-y divide-slate-100">
+              <!-- Render dinámico de partidas -->
+            </div>
+          </div>
+
+          <!-- Desglose Fiscal / Totales -->
+          <div class="pt-4 border-t border-slate-100 space-y-2 text-sm">
+            <div class="flex justify-between text-slate-600">
+              <span>Subtotal</span>
+              <span id="c-subtotal" class="font-medium">$0.00</span>
+            </div>
+            
+            <div id="c-iva-row" class="flex justify-between text-slate-600">
+              <span id="c-iva-title">IVA (16%)</span>
+              <span id="c-iva-amount" class="font-medium">$0.00</span>
+            </div>
+
+            <div class="pt-2 border-t border-slate-200 flex justify-between text-slate-900 font-bold text-base">
+              <span>Total final</span>
+              <span id="c-final-total">$0.00</span>
+            </div>
+            
+            <p id="c-tax-note" class="text-[11px] text-slate-400 italic text-right mt-1">Los precios indicados ya incluyen IVA.</p>
+          </div>
+
+          <!-- Notas y Condiciones -->
+          <div id="c-notes-container" class="pt-4 border-t border-slate-100">
+            <h4 class="text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">Notas y condiciones:</h4>
+            <p id="c-notes" class="text-xs text-slate-600 leading-relaxed whitespace-pre-line bg-slate-50 p-3.5 rounded-xl border border-slate-100">
+              Cotización válida por 15 días. Garantía por escrito en mano de obra.
+            </p>
+          </div>
+
+        </div>
+
+        <!-- 4. ESQUEMA DE PAGO (DOS COLUMNAS) -->
+        <div id="c-payment-scheme" class="grid grid-cols-2 gap-3 page-break">
+          <!-- Tarjeta Anticipo -->
+          <div class="bg-white rounded-3xl p-5 border border-slate-200/80 shadow-sm flex flex-col justify-between">
+            <div>
+              <span id="c-advance-label" class="text-xs font-bold text-slate-500 uppercase tracking-wide block">Anticipo (50%)</span>
+              <p class="text-[11px] text-slate-400 mt-0.5">Para comenzar</p>
+            </div>
+            <div id="c-advance-amount" class="text-xl sm:text-2xl font-extrabold text-slate-900 mt-3">
+              $0<span class="text-xs font-bold text-slate-500">.00</span>
+            </div>
+          </div>
+
+          <!-- Tarjeta Resto -->
+          <div class="bg-white rounded-3xl p-5 border border-slate-200/80 shadow-sm flex flex-col justify-between">
+            <div>
+              <span id="c-rest-label" class="text-xs font-bold text-slate-500 uppercase tracking-wide block">Restante</span>
+              <p class="text-[11px] text-slate-400 mt-0.5">Al entregar / finalizar</p>
+            </div>
+            <div id="c-rest-amount" class="text-xl sm:text-2xl font-extrabold text-slate-900 mt-3">
+              $0<span class="text-xs font-bold text-slate-500">.00</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- 5. PIE DE CONTACTO DIRECTO (WHATSAPP CALL TO ACTION) -->
+        <div class="no-print space-y-3 pt-2">
+          <a id="btn-whatsapp-ask" href="#" target="_blank" rel="noopener" class="w-full bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white font-bold py-4 px-6 rounded-2xl shadow-lg shadow-emerald-600/20 flex items-center justify-center gap-3 transition-all transform active:scale-[0.99] text-base">
+            <svg class="w-6 h-6 fill-current" viewBox="0 0 24 24">
+              <path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946.003-6.556 5.338-11.891 11.893-11.891 3.181.001 6.167 1.24 8.413 3.488 2.245 2.248 3.481 5.236 3.48 8.414-.003 6.557-5.338 11.892-11.893 11.892-1.99-.001-3.951-.5-5.688-1.448l-6.305 1.654zm6.597-3.807c1.676.995 3.276 1.591 5.392 1.592 5.448 0 9.886-4.434 9.889-9.885.002-5.462-4.415-9.89-9.881-9.892-5.452 0-9.887 4.434-9.889 9.884-.001 2.225.651 3.891 1.746 5.634l-.999 3.648 3.742-.981zm11.387-5.464c-.074-.124-.272-.198-.57-.347-.297-.149-1.758-.868-2.031-.967-.272-.099-.47-.149-.669.149-.198.297-.768.967-.941 1.165-.173.198-.347.223-.644.074-.297-.149-1.255-.462-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.297-.347.446-.521.151-.172.2-.296.3-.495.099-.198.05-.372-.025-.521-.075-.148-.669-1.611-.916-2.206-.242-.579-.487-.501-.669-.51l-.57-.01c-.198 0-.52.074-.792.372s-1.04 1.016-1.04 2.479 1.065 2.876 1.213 3.074c.149.198 2.095 3.2 5.076 4.487.709.306 1.263.489 1.694.626.712.226 1.36.194 1.872.118.571-.085 1.758-.719 2.006-1.413.248-.695.248-1.29.173-1.414z"/>
+            </svg>
+            Tengo una duda / Aprobar
+          </a>
+
+          <div class="text-center text-[11px] text-slate-400">
+            Documento de cotización digital emitido por <span id="c-biz-name-footer" class="font-medium text-slate-500">Soluciones MG</span>.
+          </div>
+        </div>
+
+      </div>
+
+    </div>
+  </div>
+
+  <!-- VISTA EDITOR / GENERADOR (MODO DUEÑO DE NEGOCIO) -->
+  <div id="editor-view" class="min-h-screen bg-slate-100 flex flex-col">
+    
+    <!-- Header del sistema -->
+    <header class="bg-slate-900 text-white border-b border-slate-800 sticky top-0 z-30">
+      <div class="max-w-7xl mx-auto px-4 h-16 flex items-center justify-between">
+        <div class="flex items-center gap-3">
+          <div class="w-9 h-9 bg-emerald-500 rounded-xl flex items-center justify-center font-black text-slate-900 text-lg shadow-md">
+            P
+          </div>
+          <div>
+            <h1 class="font-bold text-sm sm:text-base leading-none">Generador de Cotizaciones</h1>
+            <p class="text-[11px] text-slate-400 mt-0.5">Estilo Web Móvil ProChamba</p>
+          </div>
+        </div>
+
+        <div class="flex items-center gap-2">
+          <button onclick="loadExampleData()" class="text-xs font-semibold bg-slate-800 hover:bg-slate-700 text-slate-200 px-3 py-2 rounded-xl transition-colors border border-slate-700">
+            ⚡ Cargar ejemplo
+          </button>
+        </div>
+      </div>
+    </header>
+
+    <!-- Contenido principal: Grid de 2 columnas en Desktop, Pestañas en Mobile -->
+    <main class="flex-1 max-w-7xl w-full mx-auto p-4 sm:p-6">
+
+      <!-- Pestañas Móviles (Switch entre Editar y Previa) -->
+      <div class="lg:hidden flex bg-slate-200 p-1 rounded-2xl mb-4 font-semibold text-xs">
+        <button id="tab-btn-edit" onclick="switchMobileTab('edit')" class="flex-1 py-2.5 rounded-xl bg-white text-slate-900 shadow-sm text-center transition-all">
+          ✏️ 1. Editar Datos
+        </button>
+        <button id="tab-btn-preview" onclick="switchMobileTab('preview')" class="flex-1 py-2.5 rounded-xl text-slate-600 text-center transition-all">
+          👁️ 2. Vista Previa Móvil
+        </button>
+      </div>
+
+      <div class="grid lg:grid-cols-12 gap-6 items-start">
+        
+        <!-- COLUMNA IZQUIERDA: FORMULARIO EDITOR (7 cols) -->
+        <div id="panel-editor" class="lg:col-span-7 space-y-6">
+          
+          <!-- SECCIÓN 1: PERFIL DE NEGOCIO (Guardado en LocalStorage) -->
+          <details class="bg-white rounded-3xl p-5 sm:p-6 shadow-sm border border-slate-200/80 group" open>
+            <summary class="font-bold text-slate-900 flex items-center justify-between cursor-pointer list-none">
+              <span class="flex items-center gap-2 text-base">
+                <span class="w-7 h-7 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center text-sm font-extrabold">1</span>
+                Datos de Mi Negocio
+              </span>
+              <span class="text-xs text-emerald-600 bg-emerald-50 px-2.5 py-1 rounded-full font-semibold">Guardado auto</span>
+            </summary>
+
+            <div class="mt-4 pt-4 border-t border-slate-100 grid sm:grid-cols-2 gap-4">
+              <div class="sm:col-span-2">
+                <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">Nombre Comercial</label>
+                <input type="text" id="e-biz-name" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-slate-900" placeholder="Ej: Soluciones MG · Hospital de Calentadores">
+              </div>
+
+              <div>
+                <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">Teléfono WhatsApp (10 dígitos)</label>
+                <input type="tel" id="e-biz-phone" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-slate-900" placeholder="5512345678">
+              </div>
+
+              <div>
+                <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">Correo electrónico</label>
+                <input type="email" id="e-biz-email" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-slate-900" placeholder="contacto@minegocio.com">
+              </div>
+
+              <div class="sm:col-span-2">
+                <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">URL de Logo (Opcional)</label>
+                <input type="url" id="e-biz-logo" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-slate-900" placeholder="https://ejemplo.com/logo.png">
+                <p class="text-[11px] text-slate-400 mt-1">Si lo dejas vacío, se usará un avatar moderno con las iniciales de tu negocio.</p>
+              </div>
+
+              <div class="sm:col-span-2">
+                <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">Color del Avatar / Marca</label>
+                <div class="flex items-center gap-3">
+                  <input type="color" id="e-biz-color" value="#0f172a" class="w-10 h-10 rounded-xl cursor-pointer border-0">
+                  <span class="text-xs text-slate-500">Selecciona el color de acento principal.</span>
+                </div>
+              </div>
+            </div>
+          </details>
+
+          <!-- SECCIÓN 2: DATOS DE LA COTIZACIÓN -->
+          <div class="bg-white rounded-3xl p-5 sm:p-6 shadow-sm border border-slate-200/80 space-y-4">
+            <h2 class="font-bold text-slate-900 flex items-center gap-2 text-base">
+              <span class="w-7 h-7 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center text-sm font-extrabold">2</span>
+              Datos del Cliente y Configuración
+            </h2>
+
+            <div class="grid sm:grid-cols-2 gap-4">
+              <div>
+                <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">Folio</label>
+                <input type="text" id="e-folio" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-slate-900" value="001">
+              </div>
+
+              <div>
+                <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">Fecha</label>
+                <input type="date" id="e-date" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-slate-900">
+              </div>
+
+              <div class="sm:col-span-2">
+                <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">Nombre del Cliente</label>
+                <input type="text" id="e-client-name" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-slate-900" placeholder="Ej: Ing. Roberto Garza">
+              </div>
+
+              <div>
+                <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">Tratamiento del IVA</label>
+                <select id="e-tax-mode" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-slate-900 font-medium">
+                  <option value="included">Precios YA incluyen IVA (Desglosar 16%)</option>
+                  <option value="add">Sumar 16% de IVA al Subtotal</option>
+                  <option value="none">Sin IVA / Nota simple</option>
+                </select>
+              </div>
+
+              <div>
+                <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">Esquema de Anticipo</label>
+                <select id="e-advance-pct" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-slate-900 font-medium">
+                  <option value="50">50% Anticipo / 50% al finalizar</option>
+                  <option value="60">60% Anticipo / 40% al finalizar</option>
+                  <option value="30">30% Anticipo / 70% al finalizar</option>
+                  <option value="100">100% Anticipado</option>
+                  <option value="0">0% (Pago total contra entrega)</option>
+                </select>
+              </div>
+            </div>
+          </div>
+
+          <!-- SECCIÓN 3: PARTIDAS / CONCEPTOS -->
+          <div class="bg-white rounded-3xl p-5 sm:p-6 shadow-sm border border-slate-200/80 space-y-4">
+            <div class="flex items-center justify-between">
+              <h2 class="font-bold text-slate-900 flex items-center gap-2 text-base">
+                <span class="w-7 h-7 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center text-sm font-extrabold">3</span>
+                Conceptos / Servicios
+              </h2>
+              <button onclick="addItemRow()" class="text-xs font-bold bg-slate-900 hover:bg-slate-800 text-white px-3.5 py-2 rounded-xl transition-all shadow-sm flex items-center gap-1">
+                <span>+</span> Agregar concepto
+              </button>
+            </div>
+
+            <div id="e-items-container" class="space-y-3">
+              <!-- Filas dinámicas generadas con JS -->
+            </div>
+          </div>
+
+          <!-- SECCIÓN 4: NOTAS Y CONDICIONES -->
+          <div class="bg-white rounded-3xl p-5 sm:p-6 shadow-sm border border-slate-200/80 space-y-3">
+            <h2 class="font-bold text-slate-900 flex items-center gap-2 text-base">
+              <span class="w-7 h-7 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center text-sm font-extrabold">4</span>
+              Notas y Condiciones
+            </h2>
+            <textarea id="e-notes" rows="3" class="w-full bg-slate-50 border border-slate-200 rounded-xl p-3.5 text-sm focus:outline-none focus:ring-2 focus:ring-slate-900" placeholder="Ej: Precios vigentes por 15 días. Incluye garantía por escrito."></textarea>
+          </div>
+
+          <!-- SECCIÓN 5: ACCIONES Y COMPARTIR -->
+          <div class="bg-slate-900 text-white rounded-3xl p-6 shadow-xl space-y-4">
+            <h3 class="font-bold text-base flex items-center gap-2">
+              🚀 Generar y Compartir con Cliente
+            </h3>
+            <p class="text-xs text-slate-300">
+              Genera un enlace único comprimido. Al abrirlo, tu cliente verá la cotización limpia exactamente como en la vista previa sin costo de servidor.
+            </p>
+
+            <div class="grid sm:grid-cols-2 gap-3 pt-2">
+              <button onclick="generateAndCopyLink()" class="w-full bg-emerald-500 hover:bg-emerald-600 text-slate-950 font-bold py-3.5 px-4 rounded-xl transition-all shadow-lg shadow-emerald-500/20 flex items-center justify-center gap-2 text-sm">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"/></svg>
+                Generar Enlace y Copiar
+              </button>
+
+              <button onclick="sendViaWhatsApp()" class="w-full bg-slate-800 hover:bg-slate-700 text-emerald-400 font-bold py-3.5 px-4 rounded-xl transition-all border border-slate-700 flex items-center justify-center gap-2 text-sm">
+                <svg class="w-4 h-4 fill-current" viewBox="0 0 24 24"><path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946.003-6.556 5.338-11.891 11.893-11.891 3.181.001 6.167 1.24 8.413 3.488 2.245 2.248 3.481 5.236 3.48 8.414-.003 6.557-5.338 11.892-11.893 11.892-1.99-.001-3.951-.5-5.688-1.448l-6.305 1.654zm6.597-3.807c1.676.995 3.276 1.591 5.392 1.592 5.448 0 9.886-4.434 9.889-9.885.002-5.462-4.415-9.89-9.881-9.892-5.452 0-9.887 4.434-9.889 9.884-.001 2.225.651 3.891 1.746 5.634l-.999 3.648 3.742-.981zm11.387-5.464c-.074-.124-.272-.198-.57-.347-.297-.149-1.758-.868-2.031-.967-.272-.099-.47-.149-.669.149-.198.297-.768.967-.941 1.165-.173.198-.347.223-.644.074-.297-.149-1.255-.462-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.297-.347.446-.521.151-.172.2-.296.3-.495.099-.198.05-.372-.025-.521-.075-.148-.669-1.611-.916-2.206-.242-.579-.487-.501-.669-.51l-.57-.01c-.198 0-.52.074-.792.372s-1.04 1.016-1.04 2.479 1.065 2.876 1.213 3.074c.149.198 2.095 3.2 5.076 4.487.709.306 1.263.489 1.694.626.712.226 1.36.194 1.872.118.571-.085 1.758-.719 2.006-1.413.248-.695.248-1.29.173-1.414z"/></svg>
+                Enviar por WhatsApp
+              </button>
+            </div>
+
+            <div class="flex items-center justify-between text-xs pt-2 border-t border-slate-800 text-slate-400">
+              <button onclick="previewClientMode()" class="hover:text-white underline">
+                Ver como cliente full screen
+              </button>
+              <button onclick="downloadSelfHTML()" class="hover:text-white underline">
+                Descargar este cotizador (.html)
+              </button>
+            </div>
+          </div>
+
+        </div>
+
+        <!-- COLUMNA DERECHA: VISTA PREVIA INTERACTIVA EN TIEMPO REAL (5 cols) -->
+        <div id="panel-preview" class="hidden lg:block lg:col-span-5 sticky top-20">
+          <div class="text-xs font-bold text-slate-500 uppercase tracking-wider mb-2 flex items-center justify-between">
+            <span>Vista Previa en Vivo (Móvil)</span>
+            <span class="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse"></span>
+          </div>
+
+          <!-- Marco simulador celular -->
+          <div class="w-full max-w-[420px] mx-auto bg-slate-900 p-3 rounded-[40px] shadow-2xl border-4 border-slate-800">
+            <!-- Muesca / Altavoz del cel -->
+            <div class="w-24 h-4 bg-slate-800 rounded-full mx-auto mb-3"></div>
+            
+            <!-- Pantalla del celular -->
+            <div id="live-preview-container" class="bg-slate-100 rounded-[30px] p-3 max-h-[75vh] overflow-y-auto">
+              <!-- Aquí se replica la vista previa en tiempo real -->
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+    </main>
+  </div>
+
+  <!-- COMPRESOR LZSTRING SIMPLE Y LIGERO ENLINEA -->
+  <script>
+    // Sistema ligero de Codificación / Decodificación URL Safe Base64 + JSON
+    const DataCodec = {
+      encode: function(obj) {
+        try {
+          const jsonStr = JSON.stringify(obj);
+          // Convertir UTF-8 a Base64 URL-safe
+          const base64 = btoa(encodeURIComponent(jsonStr).replace(/%([0-9A-F]{2})/g, function(match, p1) {
+            return String.fromCharCode('0x' + p1);
+          }));
+          return base64.replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+        } catch (e) {
+          console.error("Error al codificar:", e);
+          return "";
+        }
+      },
+      decode: function(str) {
+        try {
+          let base64 = str.replace(/-/g, '+').replace(/_/g, '/');
+          while (base64.length % 4) {
+            base64 += '=';
+          }
+          const jsonStr = decodeURIComponent(Array.from(atob(base64)).map(function(c) {
+            return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
+          }).join(''));
+          return JSON.parse(jsonStr);
+        } catch (e) {
+          console.error("Error al decodificar:", e);
+          return null;
+        }
+      }
+    };
+  </script>
+
+  <!-- LÓGICA PRINCIPAL DE LA APLICACIÓN -->
+  <script>
+    // Estado global de la cotización
+    let currentData = {
+      biz: {
+        name: 'Soluciones MG · Hospital de Calentadores',
+        phone: '5512345678',
+        email: 'contacto@solucionesmg.com',
+        logo: '',
+        color: '#0f172a'
+      },
+      folio: '001',
+      date: new Date().toISOString().split('T')[0],
+      client: 'Ing. Roberto Garza',
+      taxMode: 'included', // included, add, none
+      advancePct: 50,
+      items: [
+        { desc: 'Mantenimiento preventivo general a calentador solar 150L', qty: 1, price: 1850 },
+        { desc: 'Reemplazo de barra de ánodo de magnesio y empaques de silicio', qty: 1, price: 650 },
+        { desc: 'Diagnóstico y purga de red hidráulica en azotea', qty: 1, price: 400 }
+      ],
+      notes: 'Cotización válida por 15 días naturales.\nIncluye garantía de 90 días por escrito en mano de obra.\nNo incluye material hidráulico extraordinario no contemplado.'
+    };
+
+    // Inicialización al cargar la página
+    window.addEventListener('DOMContentLoaded', () => {
+      // Intentar cargar perfil de negocio guardado previamente
+      loadSavedBizProfile();
+
+      // Verificar si venimos con parámetro ?q= o #q= en la URL (MODO CLIENTE)
+      const urlParams = new URLSearchParams(window.location.search);
+      const hash = window.location.hash.substring(1);
+      const queryData = urlParams.get('q') || (hash.startsWith('q=') ? hash.substring(2) : null);
+
+      if (queryData) {
+        const decoded = DataCodec.decode(queryData);
+        if (decoded) {
+          currentData = decoded;
+          showClientView();
+          return;
+        }
+      }
+
+      // Si no hay parámetro, inicializar en MODO EDITOR
+      document.getElementById('e-date').value = currentData.date;
+      initEditorFields();
+      renderEditorItems();
+      updateCalculationsAndPreview();
+    });
+
+    // Carga perfil guardado en LocalStorage
+    function loadSavedBizProfile() {
+      const saved = localStorage.getItem('prochamba_biz_profile');
+      if (saved) {
+        try {
+          const parsed = JSON.parse(saved);
+          currentData.biz = { ...currentData.biz, ...parsed };
+        } catch (e) {}
+      }
+      
+      const lastFolio = localStorage.getItem('prochamba_last_folio');
+      if (lastFolio) {
+        const nextFolio = String(parseInt(lastFolio) + 1).padStart(3, '0');
+        currentData.folio = nextFolio;
+      }
+    }
+
+    // Guarda el perfil de negocio en LocalStorage
+    function saveBizProfile() {
+      localStorage.setItem('prochamba_biz_profile', JSON.stringify(currentData.biz));
+    }
+
+    // Inicializa inputs del editor con currentData
+    function initEditorFields() {
+      document.getElementById('e-biz-name').value = currentData.biz.name;
+      document.getElementById('e-biz-phone').value = currentData.biz.phone;
+      document.getElementById('e-biz-email').value = currentData.biz.email;
+      document.getElementById('e-biz-logo').value = currentData.biz.logo || '';
+      document.getElementById('e-biz-color').value = currentData.biz.color || '#0f172a';
+
+      document.getElementById('e-folio').value = currentData.folio;
+      document.getElementById('e-client-name').value = currentData.client;
+      document.getElementById('e-tax-mode').value = currentData.taxMode;
+      document.getElementById('e-advance-pct').value = currentData.advancePct;
+      document.getElementById('e-notes').value = currentData.notes;
+
+      // Event listeners para actualizar en tiempo real
+      const inputs = ['e-biz-name', 'e-biz-phone', 'e-biz-email', 'e-biz-logo', 'e-biz-color', 'e-folio', 'e-date', 'e-client-name', 'e-tax-mode', 'e-advance-pct', 'e-notes'];
+      inputs.forEach(id => {
+        document.getElementById(id).addEventListener('input', readEditorInputs);
+      });
+    }
+
+    // Lee los datos del editor
+    function readEditorInputs() {
+      currentData.biz.name = document.getElementById('e-biz-name').value || 'Mi Negocio';
+      currentData.biz.phone = document.getElementById('e-biz-phone').value.replace(/\D/g, '');
+      currentData.biz.email = document.getElementById('e-biz-email').value;
+      currentData.biz.logo = document.getElementById('e-biz-logo').value;
+      currentData.biz.color = document.getElementById('e-biz-color').value;
+
+      currentData.folio = document.getElementById('e-folio').value || '001';
+      currentData.date = document.getElementById('e-date').value;
+      currentData.client = document.getElementById('e-client-name').value || 'Cliente General';
+      currentData.taxMode = document.getElementById('e-tax-mode').value;
+      currentData.advancePct = parseFloat(document.getElementById('e-advance-pct').value) || 0;
+      currentData.notes = document.getElementById('e-notes').value;
+
+      saveBizProfile();
+      updateCalculationsAndPreview();
+    }
+
+    // Renderiza las filas de partidas en el Editor
+    function renderEditorItems() {
+      const container = document.getElementById('e-items-container');
+      container.innerHTML = '';
+
+      currentData.items.forEach((item, index) => {
+        const row = document.createElement('div');
+        row.className = 'flex flex-col sm:flex-row items-stretch sm:items-center gap-2 bg-slate-50 p-3 rounded-2xl border border-slate-200/80';
+        row.innerHTML = `
+          <div class="flex-1">
+            <input type="text" value="${escapeHtml(item.desc)}" oninput="updateItem(${index}, 'desc', this.value)" class="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-slate-900" placeholder="Descripción del servicio o refacción">
+          </div>
+          <div class="flex items-center gap-2">
+            <div class="w-20">
+              <input type="number" min="1" value="${item.qty}" oninput="updateItem(${index}, 'qty', this.value)" class="w-full bg-white border border-slate-200 rounded-xl px-2.5 py-2 text-sm text-center focus:outline-none focus:ring-2 focus:ring-slate-900" placeholder="Cant.">
+            </div>
+            <div class="w-28">
+              <input type="number" min="0" step="0.01" value="${item.price}" oninput="updateItem(${index}, 'price', this.value)" class="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-sm text-right focus:outline-none focus:ring-2 focus:ring-slate-900" placeholder="Precio U.">
+            </div>
+            <button onclick="removeItemRow(${index})" class="w-9 h-9 flex items-center justify-center bg-red-50 text-red-600 rounded-xl hover:bg-red-100 transition-colors">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+            </button>
+          </div>
+        `;
+        container.appendChild(row);
+      });
+    }
+
+    function addItemRow() {
+      currentData.items.push({ desc: '', qty: 1, price: 0 });
+      renderEditorItems();
+      updateCalculationsAndPreview();
+    }
+
+    function removeItemRow(index) {
+      if (currentData.items.length <= 1) {
+        showToast('Debe haber al menos un concepto', '⚠️');
+        return;
+      }
+      currentData.items.splice(index, 1);
+      renderEditorItems();
+      updateCalculationsAndPreview();
+    }
+
+    function updateItem(index, key, value) {
+      if (key === 'qty' || key === 'price') {
+        currentData.items[index][key] = parseFloat(value) || 0;
+      } else {
+        currentData.items[index][key] = value;
+      }
+      updateCalculationsAndPreview();
+    }
+
+    // Calcula subtotales, IVA, Total, Anticipo y actualiza Vistas
+    function updateCalculationsAndPreview() {
+      // 1. Calcular subtotal directo de las partidas
+      let rawSubtotal = 0;
+      currentData.items.forEach(item => {
+        rawSubtotal += (item.qty * item.price);
+      });
+
+      let subtotal = 0;
+      let iva = 0;
+      let total = 0;
+
+      if (currentData.taxMode === 'included') {
+        total = rawSubtotal;
+        subtotal = total / 1.16;
+        iva = total - subtotal;
+      } else if (currentData.taxMode === 'add') {
+        subtotal = rawSubtotal;
+        iva = subtotal * 0.16;
+        total = subtotal + iva;
+      } else { // none
+        subtotal = rawSubtotal;
+        iva = 0;
+        total = subtotal;
+      }
+
+      const advance = (total * (currentData.advancePct / 100));
+      const rest = total - advance;
+
+      // Actualizar DOM en Vista Cliente / Previa
+      renderClientDOM({ subtotal, iva, total, advance, rest });
+
+      // Duplicar en la Vista Previa del Simulador Celular en el Editor
+      const clientContent = document.getElementById('client-view').querySelector('.max-w-\\[460px\\]').cloneNode(true);
+      // Remover botones superiores del clon
+      const topBar = clientContent.querySelector('.no-print');
+      if (topBar) topBar.remove();
+      
+      const livePreview = document.getElementById('live-preview-container');
+      livePreview.innerHTML = '';
+      livePreview.appendChild(clientContent);
+    }
+
+    // Renderiza los datos en los elementos HTML del visor cliente
+    function renderClientDOM(calc) {
+      // Negocio
+      document.getElementById('c-biz-name').textContent = currentData.biz.name;
+      document.getElementById('c-biz-phone').textContent = formatPhone(currentData.biz.phone);
+      document.getElementById('c-biz-email').textContent = currentData.biz.email || '';
+      
+      // Logo / Iniciales
+      const logoImg = document.getElementById('c-logo-img');
+      const initialsSpan = document.getElementById('c-logo-initials');
+      const logoContainer = document.getElementById('c-logo-container');
+      
+      logoContainer.style.backgroundColor = currentData.biz.color || '#0f172a';
+
+      if (currentData.biz.logo) {
+        logoImg.src = currentData.biz.logo;
+        logoImg.classList.remove('hidden');
+        initialsSpan.classList.add('hidden');
+      } else {
+        logoImg.classList.add('hidden');
+        initialsSpan.classList.remove('hidden');
+        initialsSpan.textContent = getInitials(currentData.biz.name);
+      }
+
+      // Folio y Fecha
+      document.getElementById('c-folio').textContent = `Folio ${currentData.folio}`;
+      document.getElementById('c-date').textContent = formatDate(currentData.date);
+
+      // Total Destacado
+      const formattedTotal = formatMoneyParts(calc.total);
+      document.getElementById('c-total-display').innerHTML = `$${formattedTotal.int}<span class="text-lg font-bold opacity-80">.${formattedTotal.dec}</span>`;
+      
+      const taxLabel = document.getElementById('c-tax-label');
+      if (currentData.taxMode === 'none') {
+        taxLabel.textContent = 'Sin IVA / Nota simple';
+      } else {
+        taxLabel.textContent = 'IVA incluido';
+      }
+
+      // Cliente
+      document.getElementById('c-client-name').textContent = currentData.client;
+
+      // Items
+      const itemsList = document.getElementById('c-items-list');
+      itemsList.innerHTML = '';
+      currentData.items.forEach(item => {
+        const itemTotal = item.qty * item.price;
+        const div = document.createElement('div');
+        div.className = 'py-3 flex items-start justify-between gap-3';
+        div.innerHTML = `
+          <div class="min-w-0 flex-1">
+            <p class="font-bold text-slate-800 text-sm leading-snug">${escapeHtml(item.desc || 'Concepto sin descripción')}</p>
+            <p class="text-xs text-slate-400 mt-0.5">${item.qty} × $${formatNumber(item.price)}</p>
+          </div>
+          <div class="font-semibold text-slate-900 text-sm flex-shrink-0">
+            $${formatNumber(itemTotal)}
+          </div>
+        `;
+        itemsList.appendChild(div);
+      });
+
+      // Totales y Desglose
+      document.getElementById('c-subtotal').textContent = `$${formatNumber(calc.subtotal)}`;
+      
+      const ivaRow = document.getElementById('c-iva-row');
+      const taxNote = document.getElementById('c-tax-note');
+
+      if (currentData.taxMode === 'none') {
+        ivaRow.classList.add('hidden');
+        taxNote.textContent = 'Precios sin desglose de IVA.';
+      } else {
+        ivaRow.classList.remove('hidden');
+        document.getElementById('c-iva-amount').textContent = `$${formatNumber(calc.iva)}`;
+        if (currentData.taxMode === 'included') {
+          taxNote.textContent = 'Los precios de arriba ya incluyen IVA (16%).';
+        } else {
+          taxNote.textContent = 'Precios subtotal más 16% de IVA desglosado.';
+        }
+      }
+
+      document.getElementById('c-final-total').textContent = `$${formatNumber(calc.total)}`;
+
+      // Notas
+      const notesContainer = document.getElementById('c-notes-container');
+      if (currentData.notes && currentData.notes.trim()) {
+        notesContainer.classList.remove('hidden');
+        document.getElementById('c-notes').textContent = currentData.notes;
+      } else {
+        notesContainer.classList.add('hidden');
+      }
+
+      // Esquema de Pago
+      const advanceLabel = document.getElementById('c-advance-label');
+      const advanceAmount = document.getElementById('c-advance-amount');
+      const restLabel = document.getElementById('c-rest-label');
+      const restAmount = document.getElementById('c-rest-amount');
+
+      if (currentData.advancePct === 0) {
+        advanceLabel.textContent = 'Anticipo';
+        advanceAmount.innerHTML = `<span class="text-base font-bold text-slate-500">$0.00</span>`;
+        restLabel.textContent = 'Pago Final';
+        restAmount.innerHTML = `$${formatMoneyParts(calc.total).int}<span class="text-xs font-bold text-slate-500">.${formatMoneyParts(calc.total).dec}</span>`;
+      } else if (currentData.advancePct === 100) {
+        advanceLabel.textContent = 'Pago 100%';
+        advanceAmount.innerHTML = `$${formatMoneyParts(calc.total).int}<span class="text-xs font-bold text-slate-500">.${formatMoneyParts(calc.total).dec}</span>`;
+        restLabel.textContent = 'Restante';
+        restAmount.innerHTML = `<span class="text-base font-bold text-slate-500">$0.00</span>`;
+      } else {
+        advanceLabel.textContent = `Anticipo (${currentData.advancePct}%)`;
+        const advParts = formatMoneyParts(calc.advance);
+        advanceAmount.innerHTML = `$${advParts.int}<span class="text-xs font-bold text-slate-500">.${advParts.dec}</span>`;
+
+        restLabel.textContent = `Restante (${100 - currentData.advancePct}%)`;
+        const restParts = formatMoneyParts(calc.rest);
+        restAmount.innerHTML = `$${restParts.int}<span class="text-xs font-bold text-slate-500">.${restParts.dec}</span>`;
+      }
+
+      // Pie WhatsApp
+      document.getElementById('c-biz-name-footer').textContent = currentData.biz.name;
+      const cleanPhone = currentData.biz.phone.replace(/\D/g, '');
+      const waMsg = encodeURIComponent(`Hola, me interesa la cotización Folio ${currentData.folio} de ${currentData.biz.name}. Quisiera confirmar los detalles.`);
+      document.getElementById('btn-whatsapp-ask').href = `https://wa.me/52${cleanPhone}?text=${waMsg}`;
+    }
+
+    // Muestra la vista cliente y oculta el editor
+    function showClientView() {
+      document.getElementById('editor-view').classList.add('hidden');
+      document.getElementById('client-view').classList.remove('hidden');
+      updateCalculationsAndPreview();
+      window.scrollTo(0, 0);
+    }
+
+    // Genera el enlace comprimido y lo copia al portapapeles
+    function generateAndCopyLink() {
+      // Guardar folio actual para autoincremento futuro
+      if (!isNaN(parseInt(currentData.folio))) {
+        localStorage.setItem('prochamba_last_folio', currentData.folio);
+      }
+
+      const encoded = DataCodec.encode(currentData);
+      const fullUrl = `${window.location.origin}${window.location.pathname}?q=${encoded}`;
+
+      // Copiar usando un textarea temporal
+      const tempInput = document.createElement('textarea');
+      tempInput.value = fullUrl;
+      document.body.appendChild(tempInput);
+      tempInput.select();
+      document.execCommand('copy');
+      document.body.removeChild(tempInput);
+
+      showToast('¡Enlace de cotización copiado al portapapeles!', '📋');
+      return fullUrl;
+    }
+
+    // Envía enlace por WhatsApp
+    function sendViaWhatsApp() {
+      const link = generateAndCopyLink();
+      const cleanPhone = currentData.biz.phone.replace(/\D/g, '');
+      const msg = encodeURIComponent(`Hola ${currentData.client}, te comparto el enlace de la cotización *Folio ${currentData.folio}* de *${currentData.biz.name}*:\n\n${link}\n\nQuedo a tus órdenes para cualquier duda.`);
+      
+      window.open(`https://wa.me/52${cleanPhone}?text=${msg}`, '_blank');
+    }
+
+    // Previsualización full-screen modo cliente
+    function previewClientMode() {
+      showClientView();
+      showToast('Estás viendo el visor como cliente. Usa "Crear nueva" para regresar.', '👁️');
+    }
+
+    // Descargar copia offline .html
+    function downloadSelfHTML() {
+      const blob = new Blob(['<!DOCTYPE html>\n' + document.documentElement.outerHTML], { type: 'text/html' });
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = `cotizador_${currentData.biz.name.toLowerCase().replace(/[^a-z0-9]/g, '_')}.html`;
+      a.click();
+      showToast('Archivo HTML descargado. Puedes subirlo a Vercel o Netlify gratis.', '📥');
+    }
+
+    // Cargar datos de ejemplo rápidos
+    function loadExampleData() {
+      currentData = {
+        biz: {
+          name: 'Soluciones MG · Hospital de Calentadores',
+          phone: '5512345678',
+          email: 'contacto@solucionesmg.com',
+          logo: '',
+          color: '#0f172a'
+        },
+        folio: '084',
+        date: new Date().toISOString().split('T')[0],
+        client: 'Arq. Mariana Ríos',
+        taxMode: 'included',
+        advancePct: 50,
+        items: [
+          { desc: 'Suministro e instalación de Calentador Solar 18 Tubos Alta Presión Stainless', qty: 1, price: 9200 },
+          { desc: 'Juego de conectores flex de acero inoxidable 3/4" y válvula de alivio térmico', qty: 1, price: 850 },
+          { desc: 'Mano de obra especializada e interconexión a red de agua caliente', qty: 1, price: 1500 }
+        ],
+        notes: 'Precios incluyen instalación básica en azotea. Válido por 15 días.\nGarantía de 5 años en tanque y tubos por defecto de fábrica.'
+      };
+      initEditorFields();
+      renderEditorItems();
+      updateCalculationsAndPreview();
+      showToast('Ejemplo cargado correctamente', '✨');
+    }
+
+    // Pestañas en Mobile Editor
+    function switchMobileTab(tab) {
+      const editBtn = document.getElementById('tab-btn-edit');
+      const prevBtn = document.getElementById('tab-btn-preview');
+      const panelEditor = document.getElementById('panel-editor');
+      const panelPreview = document.getElementById('panel-preview');
+
+      if (tab === 'edit') {
+        editBtn.className = 'flex-1 py-2.5 rounded-xl bg-white text-slate-900 shadow-sm text-center transition-all';
+        prevBtn.className = 'flex-1 py-2.5 rounded-xl text-slate-600 text-center transition-all';
+        panelEditor.classList.remove('hidden');
+        panelPreview.classList.add('hidden');
+      } else {
+        prevBtn.className = 'flex-1 py-2.5 rounded-xl bg-white text-slate-900 shadow-sm text-center transition-all';
+        editBtn.className = 'flex-1 py-2.5 rounded-xl text-slate-600 text-center transition-all';
+        panelEditor.classList.add('hidden');
+        panelPreview.classList.remove('hidden');
+      }
+    }
+
+    // Utilidades auxiliares
+    function formatNumber(num) {
+      return (num || 0).toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    }
+
+    function formatMoneyParts(num) {
+      const formatted = formatNumber(num);
+      const parts = formatted.split('.');
+      return { int: parts[0], dec: parts[1] || '00' };
+    }
+
+    function formatDate(dateStr) {
+      if (!dateStr) return '';
+      const [y, m, d] = dateStr.split('-');
+      return `${d}/${m}/${y}`;
+    }
+
+    function formatPhone(phone) {
+      const p = (phone || '').replace(/\D/g, '');
+      if (p.length === 10) {
+        return `${p.substring(0,2)} ${p.substring(2,6)} ${p.substring(6)}`;
+      }
+      return phone;
+    }
+
+    function getInitials(name) {
+      if (!name) return 'MG';
+      const words = name.trim().split(/\s+/);
+      if (words.length === 1) return words[0].substring(0, 2).toUpperCase();
+      return (words[0][0] + words[1][0]).toUpperCase();
+    }
+
+    function escapeHtml(str) {
+      return (str || '').replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+    }
+
+    function showToast(msg, icon = '✨') {
+      const toast = document.getElementById('toast');
+      document.getElementById('toast-msg').textContent = msg;
+      document.getElementById('toast-icon').textContent = icon;
+      toast.classList.remove('translate-y-[-100px]', 'opacity-0', 'pointer-events-none');
+      setTimeout(() => {
+        toast.classList.add('translate-y-[-100px]', 'opacity-0', 'pointer-events-none');
+      }, 3000);
+    }
+  </script>
+</body>
+</html>

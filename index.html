@@ -240,11 +240,11 @@
       <div class="max-w-7xl mx-auto px-4 h-16 flex items-center justify-between">
         <div class="flex items-center gap-3">
           <div class="w-9 h-9 bg-emerald-500 rounded-xl flex items-center justify-center font-black text-slate-900 text-lg shadow-md">
-            P
+            G
           </div>
           <div>
             <h1 class="font-bold text-sm sm:text-base leading-none">Generador de Cotizaciones</h1>
-            <p class="text-[11px] text-slate-400 mt-0.5">Estilo Web Móvil ProChamba</p>
+            <p class="text-[11px] text-slate-400 mt-0.5 font-semibold tracking-wider">GODE</p>
           </div>
         </div>
 
@@ -301,9 +301,19 @@
               </div>
 
               <div class="sm:col-span-2">
-                <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">URL de Logo (Opcional)</label>
-                <input type="url" id="e-biz-logo" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-slate-900" placeholder="https://ejemplo.com/logo.png">
-                <p class="text-[11px] text-slate-400 mt-1">Si lo dejas vacío, se usará un avatar moderno con las iniciales de tu negocio.</p>
+                <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">Logo del Negocio (Subir imagen o pegar enlace)</label>
+                <div class="flex flex-col sm:flex-row gap-2">
+                  <label class="cursor-pointer bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold px-4 py-2.5 rounded-xl transition-colors flex items-center justify-center gap-2 flex-shrink-0 shadow-sm">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/></svg>
+                    Subir imagen
+                    <input type="file" id="e-biz-logo-file" accept="image/*" class="hidden" onchange="handleLogoUpload(event)">
+                  </label>
+                  <input type="text" id="e-biz-logo" class="flex-1 bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-slate-900" placeholder="O pega aquí una URL de imagen (opcional)">
+                  <button type="button" id="btn-clear-logo" onclick="clearLogo()" class="hidden text-xs font-semibold bg-red-50 hover:bg-red-100 text-red-600 px-3 py-2 rounded-xl transition-colors flex-shrink-0">
+                    Quitar
+                  </button>
+                </div>
+                <p class="text-[11px] text-slate-400 mt-1">Acepta cualquier formato (JPG, PNG, WEBP). Si lo dejas vacío, se mostrarán las iniciales de tu negocio.</p>
               </div>
 
               <div class="sm:col-span-2">
@@ -558,6 +568,7 @@
       document.getElementById('e-biz-email').value = currentData.biz.email;
       document.getElementById('e-biz-logo').value = currentData.biz.logo || '';
       document.getElementById('e-biz-color').value = currentData.biz.color || '#0f172a';
+      toggleClearLogoBtn();
 
       document.getElementById('e-folio').value = currentData.folio;
       document.getElementById('e-client-name').value = currentData.client;
@@ -572,13 +583,76 @@
       });
     }
 
+    // Procesa y optimiza la imagen subida para que sea ligera y compatible con enlaces compartibles
+    function handleLogoUpload(event) {
+      const file = event.target.files[0];
+      if (!file) return;
+
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        const img = new Image();
+        img.onload = function() {
+          const canvas = document.createElement('canvas');
+          const maxSize = 140; // Tamaño óptimo para avatar cuadrado sin saturar la URL
+          let width = img.width;
+          let height = img.height;
+
+          if (width > height) {
+            if (width > maxSize) {
+              height *= maxSize / width;
+              width = maxSize;
+            }
+          } else {
+            if (height > maxSize) {
+              width *= maxSize / height;
+              height = maxSize;
+            }
+          }
+
+          canvas.width = width;
+          canvas.height = height;
+          const ctx = canvas.getContext('2d');
+          ctx.drawImage(img, 0, 0, width, height);
+
+          // Exportar optimizado en WebP/JPEG ligero
+          const compressedDataUrl = canvas.toDataURL('image/webp', 0.82);
+          document.getElementById('e-biz-logo').value = compressedDataUrl;
+          readEditorInputs();
+          toggleClearLogoBtn();
+          showToast('Logo cargado y optimizado correctamente', '🖼️');
+        };
+        img.src = e.target.result;
+      };
+      reader.readAsDataURL(file);
+    }
+
+    // Limpia el logo para regresar a las iniciales del negocio
+    function clearLogo() {
+      document.getElementById('e-biz-logo').value = '';
+      document.getElementById('e-biz-logo-file').value = '';
+      readEditorInputs();
+      toggleClearLogoBtn();
+      showToast('Se restablecieron las iniciales del negocio', '✨');
+    }
+
+    function toggleClearLogoBtn() {
+      const btn = document.getElementById('btn-clear-logo');
+      const val = document.getElementById('e-biz-logo').value.trim();
+      if (val) {
+        btn.classList.remove('hidden');
+      } else {
+        btn.classList.add('hidden');
+      }
+    }
+
     // Lee los datos del editor
     function readEditorInputs() {
       currentData.biz.name = document.getElementById('e-biz-name').value || 'Mi Negocio';
       currentData.biz.phone = document.getElementById('e-biz-phone').value.replace(/\D/g, '');
       currentData.biz.email = document.getElementById('e-biz-email').value;
-      currentData.biz.logo = document.getElementById('e-biz-logo').value;
+      currentData.biz.logo = document.getElementById('e-biz-logo').value.trim();
       currentData.biz.color = document.getElementById('e-biz-color').value;
+      toggleClearLogoBtn();
 
       currentData.folio = document.getElementById('e-folio').value || '001';
       currentData.date = document.getElementById('e-date').value;

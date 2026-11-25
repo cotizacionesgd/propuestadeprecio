@@ -1,457 +1,409 @@
 <!DOCTYPE html>
-<html lang="es" class="h-full bg-slate-100">
+<html lang="es">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Cotizaciones Web | Soluciones MG</title>
-  <!-- Tailwind CSS -->
+  <title>GODE — Cotizador y Visor Web</title>
   <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <script>
     tailwind.config = {
       theme: {
         extend: {
-          colors: {
-            brand: {
-              50: '#f0f9ff',
-              100: '#e0f2fe',
-              500: '#0284c7',
-              600: '#0369a1',
-              700: '#0f172a',
-            }
+          fontFamily: {
+            sans: ['Inter', 'system-ui', '-apple-system', 'sans-serif'],
           }
         }
       }
-    };
+    }
   </script>
-  <!-- Google Fonts: Inter -->
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-
   <style>
     body {
       font-family: 'Inter', system-ui, -apple-system, sans-serif;
-      -webkit-tap-highlight-color: transparent;
+      background-color: #f8fafc;
+      color: #0f172a;
+      -webkit-font-smoothing: antialiased;
     }
-    
-    /* Scrollbar estilizada */
-    ::-webkit-scrollbar {
-      width: 6px;
-      height: 6px;
-    }
-    ::-webkit-scrollbar-track {
-      background: #f1f5f9;
-    }
-    ::-webkit-scrollbar-thumb {
-      background: #cbd5e1;
-      border-radius: 9999px;
-    }
-
-    /* Estilos de impresión (PDF de alta calidad) */
     @media print {
-      .no-print {
-        display: none !important;
-      }
-      body {
-        background-color: #ffffff !important;
-        color: #000000 !important;
-      }
-      .print-container {
-        max-width: 100% !important;
-        margin: 0 !important;
-        padding: 0 !important;
-        box-shadow: none !important;
-      }
-      .page-break {
-        page-break-inside: avoid;
-      }
+      .no-print { display: none !important; }
+      body { background-color: #ffffff !important; }
+      #client-view { padding: 0 !important; max-width: 100% !important; }
+      .shadow-sm, .shadow-md, .shadow-lg { box-shadow: none !important; }
+    }
+    /* Ocultar flechas en inputs numéricos */
+    input[type=number]::-webkit-inner-spin-button,
+    input[type=number]::-webkit-outer-spin-button {
+      -webkit-appearance: none;
+      margin: 0;
     }
   </style>
 </head>
-<body class="h-full text-slate-800 antialiased selection:bg-slate-200">
+<body class="min-h-screen flex flex-col justify-between selection:bg-emerald-100 selection:text-emerald-900">
 
-  <!-- ALERTA / TOAST DE NOTIFICACIÓN -->
-  <div id="toast" class="fixed top-5 right-5 z-50 transform transition-all duration-300 translate-y-[-100px] opacity-0 pointer-events-none">
-    <div class="flex items-center gap-3 bg-slate-900 text-white px-5 py-3.5 rounded-2xl shadow-xl text-sm font-medium">
-      <span id="toast-icon">✨</span>
-      <span id="toast-msg">Notificación</span>
-    </div>
-  </div>
+  <!-- BARRA SUPERIOR DE CONTROL (Solo visible para ti cuando entras sin enlace de cliente) -->
+  <nav id="top-bar" class="no-print sticky top-0 z-40 bg-white/85 backdrop-blur-md border-b border-slate-200/80 px-4 py-3">
+    <div class="max-w-3xl mx-auto flex items-center justify-between gap-2">
+      <div class="flex items-center gap-2">
+        <div class="w-8 h-8 rounded-lg bg-slate-900 text-white flex items-center justify-center font-bold text-sm">G</div>
+        <div>
+          <span class="font-bold text-slate-900 text-sm block leading-none">GODE</span>
+          <span id="mode-badge" class="text-[11px] font-medium text-emerald-600">Modo Editor</span>
+        </div>
+      </div>
 
-  <!-- VISTA CLIENTE (SOLO COTIZACIÓN) -->
-  <div id="client-view" class="hidden min-h-screen bg-slate-100 py-4 px-3 sm:py-8 sm:px-4">
-    <div class="max-w-[460px] mx-auto print-container">
-      
-      <!-- Barra superior sutil de acciones en cliente -->
-      <div class="no-print mb-4 flex items-center justify-between px-1">
-        <a href="?" id="btn-create-new" class="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-500 hover:text-slate-900 transition-colors bg-white px-3 py-1.5 rounded-full shadow-sm border border-slate-200">
-          <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
-          Crear nueva
-        </a>
-        <button onclick="window.print()" class="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-600 hover:text-slate-900 transition-colors bg-white px-3 py-1.5 rounded-full shadow-sm border border-slate-200">
+      <div class="flex items-center gap-2">
+        <button id="btn-toggle-view" onclick="toggleMode()" class="text-xs font-semibold px-3 py-2 rounded-lg border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 transition-colors flex items-center gap-1.5">
+          <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
+          <span id="btn-toggle-text">Vista Previa Cliente</span>
+        </button>
+
+        <button onclick="window.print()" class="text-xs font-semibold px-3 py-2 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 transition-colors flex items-center gap-1.5" title="Guardar como PDF o Imprimir">
           <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"/></svg>
-          Imprimir / PDF
+          <span class="hidden sm:inline">PDF</span>
+        </button>
+      </div>
+    </div>
+  </nav>
+
+  <!-- CONTENIDO PRINCIPAL -->
+  <main class="flex-1 w-full">
+
+    <!-- =================================================================== -->
+    <!-- VISTA 1: EDITOR DE COTIZACIONES (Para ti como dueño del negocio)    -->
+    <!-- =================================================================== -->
+    <section id="editor-view" class="max-w-2xl mx-auto px-4 py-6 sm:py-8 space-y-6">
+      
+      <!-- Aviso de funcionamiento -->
+      <div class="bg-emerald-50/80 border border-emerald-200/80 rounded-2xl p-4 flex items-start gap-3">
+        <div class="p-2 bg-emerald-100 text-emerald-700 rounded-xl shrink-0 mt-0.5">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+        </div>
+        <div class="text-xs sm:text-sm text-emerald-950 space-y-1">
+          <p class="font-semibold">100% Sin suscripciones ni servidores</p>
+          <p class="text-emerald-800 leading-relaxed">Los datos de tu empresa se guardan automáticamente en este dispositivo. Al terminar la cotización, presiona <strong>"Generar Enlace y Copiar"</strong> y mándalo por WhatsApp a tu cliente.</p>
+        </div>
+      </div>
+
+      <!-- 1. Datos de tu Negocio (Persistentes en localStorage) -->
+      <div class="bg-white rounded-2xl border border-slate-200/90 shadow-sm p-5 space-y-4">
+        <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+          <h2 class="font-bold text-slate-900 text-base flex items-center gap-2">
+            <span class="w-6 h-6 rounded-full bg-slate-100 text-slate-700 text-xs flex items-center justify-center font-bold">1</span>
+            Datos de tu Negocio
+          </h2>
+          <span class="text-[11px] font-medium text-slate-400">Se guarda automático</span>
+        </div>
+
+        <div class="grid sm:grid-cols-2 gap-4">
+          <div class="sm:col-span-2">
+            <label class="block text-xs font-semibold text-slate-600 mb-1">Nombre de tu empresa o servicio</label>
+            <input type="text" id="in-biz-name" oninput="saveAndSync()" placeholder="Ej. Soluciones MG · Hospital de Calentadores" class="w-full rounded-xl border border-slate-200 px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-slate-900/10 focus:border-slate-900">
+          </div>
+
+          <div>
+            <label class="block text-xs font-semibold text-slate-600 mb-1">WhatsApp / Teléfono (10 dígitos)</label>
+            <input type="tel" id="in-biz-phone" oninput="saveAndSync()" placeholder="Ej. 7713530291" class="w-full rounded-xl border border-slate-200 px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-slate-900/10 focus:border-slate-900">
+          </div>
+
+          <div>
+            <label class="block text-xs font-semibold text-slate-600 mb-1">Correo electrónico</label>
+            <input type="email" id="in-biz-email" oninput="saveAndSync()" placeholder="Ej. contacto@tunegocio.mx" class="w-full rounded-xl border border-slate-200 px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-slate-900/10 focus:border-slate-900">
+          </div>
+
+          <div class="sm:col-span-2">
+            <label class="block text-xs font-semibold text-slate-600 mb-1">Logo del negocio (Opcional — si se deja vacío muestra tus iniciales)</label>
+            <div class="flex flex-col sm:flex-row gap-2">
+              <div class="flex items-center gap-2 shrink-0">
+                <input type="file" id="in-biz-logo-file" accept="image/*" onchange="handleLogoUpload(event)" class="hidden">
+                <button type="button" onclick="document.getElementById('in-biz-logo-file').click()" class="px-3.5 py-2.5 rounded-xl border border-slate-200 bg-slate-50 hover:bg-slate-100 text-slate-700 text-xs font-semibold flex items-center gap-1.5 transition-colors">
+                  <svg class="w-4 h-4 text-slate-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+                  Subir imagen
+                </button>
+                <button type="button" id="btn-clear-logo" onclick="clearLogo()" class="hidden px-2.5 py-2.5 rounded-xl border border-rose-200 bg-rose-50 hover:bg-rose-100 text-rose-600 text-xs font-semibold transition-colors" title="Quitar logo y usar iniciales">
+                  Quitar
+                </button>
+              </div>
+
+              <div class="flex gap-2 flex-1">
+                <input type="text" id="in-biz-logo" oninput="saveAndSync()" placeholder="O pega enlace directo de imagen (opcional)" class="flex-1 rounded-xl border border-slate-200 px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-slate-900/10 focus:border-slate-900">
+                <input type="color" id="in-biz-color" oninput="saveAndSync()" value="#0f172a" title="Color de fondo para las iniciales" class="w-11 h-10 rounded-xl border border-slate-200 p-1 cursor-pointer bg-white shrink-0">
+              </div>
+            </div>
+            <p class="text-[11px] text-slate-400 mt-1">Nota: Las imágenes subidas desde tu equipo se muestran en Vista Previa y PDF; en el enlace compartido se muestran tus iniciales para mantener la URL corta y funcional en WhatsApp.</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- 2. Datos de la Cotización y Cliente -->
+      <div class="bg-white rounded-2xl border border-slate-200/90 shadow-sm p-5 space-y-4">
+        <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+          <h2 class="font-bold text-slate-900 text-base flex items-center gap-2">
+            <span class="w-6 h-6 rounded-full bg-slate-100 text-slate-700 text-xs flex items-center justify-center font-bold">2</span>
+            Datos del Cliente y Folio
+          </h2>
+          <button onclick="resetQuoteOnly()" class="text-xs font-medium text-rose-600 hover:text-rose-700">Nueva cotización</button>
+        </div>
+
+        <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
+          <div class="col-span-2">
+            <label class="block text-xs font-semibold text-slate-600 mb-1">Para (Nombre del cliente)</label>
+            <input type="text" id="in-client-name" oninput="syncQuoteData()" placeholder="Ej. Ing. Oscar Guzmán" class="w-full rounded-xl border border-slate-200 px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-slate-900/10 focus:border-slate-900">
+          </div>
+
+          <div>
+            <label class="block text-xs font-semibold text-slate-600 mb-1">Folio</label>
+            <input type="text" id="in-folio" oninput="syncQuoteData()" placeholder="196" class="w-full rounded-xl border border-slate-200 px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-slate-900/10 focus:border-slate-900">
+          </div>
+
+          <div>
+            <label class="block text-xs font-semibold text-slate-600 mb-1">Fecha</label>
+            <input type="date" id="in-date" oninput="syncQuoteData()" class="w-full rounded-xl border border-slate-200 px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-slate-900/10 focus:border-slate-900">
+          </div>
+        </div>
+      </div>
+
+      <!-- 3. Conceptos / Partidas ("Lo que incluye") -->
+      <div class="bg-white rounded-2xl border border-slate-200/90 shadow-sm p-5 space-y-4">
+        <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+          <h2 class="font-bold text-slate-900 text-base flex items-center gap-2">
+            <span class="w-6 h-6 rounded-full bg-slate-100 text-slate-700 text-xs flex items-center justify-center font-bold">3</span>
+            Conceptos a cotizar
+          </h2>
+          <span class="text-xs font-semibold text-slate-500" id="editor-items-count">0 conceptos</span>
+        </div>
+
+        <div id="items-editor-list" class="space-y-3">
+          <!-- Las filas dinámicas se renderizan aquí -->
+        </div>
+
+        <button onclick="addItemRow()" class="w-full py-3 rounded-xl border-2 border-dashed border-slate-200 hover:border-slate-400 hover:bg-slate-50 text-slate-600 font-semibold text-sm transition-all flex items-center justify-center gap-2">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+          Agregar otro concepto
         </button>
       </div>
 
-      <!-- TARJETA PRINCIPAL CONTENEDORA -->
-      <div class="space-y-4">
-
-        <!-- 1. ENCABEZADO DEL NEGOCIO -->
-        <div class="bg-white rounded-3xl p-6 shadow-sm border border-slate-200/80">
-          <div class="flex items-start gap-4">
-            <!-- Logo o Avatar -->
-            <div id="c-logo-container" class="w-14 h-14 rounded-2xl flex-shrink-0 flex items-center justify-center font-bold text-xl overflow-hidden shadow-sm">
-              <span id="c-logo-initials" class="text-white">MG</span>
-              <img id="c-logo-img" src="" alt="Logo" class="w-full h-full object-cover hidden" onerror="this.classList.add('hidden'); document.getElementById('c-logo-initials').classList.remove('hidden');">
-            </div>
-            
-            <div class="min-w-0 flex-1">
-              <h1 id="c-biz-name" class="font-bold text-lg text-slate-900 leading-snug truncate">Soluciones MG · Hospital de Calentadores</h1>
-              <p class="text-xs text-slate-500 mt-1 flex flex-wrap items-center gap-x-1.5 gap-y-0.5">
-                <span id="c-biz-phone">55 1234 5678</span>
-                <span class="text-slate-300">·</span>
-                <span id="c-biz-email" class="truncate">contacto@solucionesmg.com</span>
-              </p>
-            </div>
-          </div>
-
-          <div class="mt-4 pt-4 border-t border-slate-100 flex items-center justify-between text-xs text-slate-500 font-medium">
-            <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-slate-100 text-slate-700 font-semibold">
-              Cotización · <span id="c-folio">Folio 001</span>
-            </span>
-            <span id="c-date">22/11/2026</span>
-          </div>
+      <!-- 4. Impuestos, Anticipo y Notas -->
+      <div class="bg-white rounded-2xl border border-slate-200/90 shadow-sm p-5 space-y-4">
+        <div class="border-b border-slate-100 pb-3">
+          <h2 class="font-bold text-slate-900 text-base flex items-center gap-2">
+            <span class="w-6 h-6 rounded-full bg-slate-100 text-slate-700 text-xs flex items-center justify-center font-bold">4</span>
+            Impuestos, Anticipo y Condiciones
+          </h2>
         </div>
 
-        <!-- 2. TARJETA DESTACADA DEL TOTAL -->
-        <div class="bg-slate-900 text-white rounded-3xl p-6 shadow-md relative overflow-hidden">
-          <div class="absolute -right-6 -bottom-6 w-32 h-32 bg-white/5 rounded-full blur-2xl pointer-events-none"></div>
-          
-          <div class="flex items-end justify-between">
-            <div>
-              <span class="text-xs uppercase tracking-wider text-slate-400 font-semibold">Monto Total</span>
-              <p id="c-tax-label" class="text-xs text-slate-300 mt-0.5">IVA incluido</p>
-            </div>
-            <div class="text-right">
-              <div id="c-total-display" class="text-3xl sm:text-4xl font-extrabold tracking-tight">
-                $0<span class="text-lg font-bold opacity-80">.00</span>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <!-- 3. CUERPO DE LA COTIZACIÓN (DETALLE) -->
-        <div class="bg-white rounded-3xl p-6 shadow-sm border border-slate-200/80 space-y-6">
-          
-          <!-- Cliente -->
-          <div class="bg-slate-50 rounded-2xl p-4 border border-slate-100">
-            <span class="text-xs font-semibold uppercase tracking-wider text-slate-400 block mb-1">Para el cliente:</span>
-            <p id="c-client-name" class="font-bold text-slate-900 text-base">Cliente General</p>
-          </div>
-
-          <!-- Conceptos -->
+        <div class="grid sm:grid-cols-2 gap-4">
           <div>
-            <h3 class="text-xs font-bold uppercase tracking-wider text-slate-400 mb-3 px-1">Lo que incluye:</h3>
-            <div id="c-items-list" class="divide-y divide-slate-100">
-              <!-- Render dinámico de partidas -->
+            <label class="block text-xs font-semibold text-slate-600 mb-1">Cálculo de IVA (16%)</label>
+            <select id="in-tax-mode" onchange="syncQuoteData()" class="w-full rounded-xl border border-slate-200 px-3.5 py-2.5 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-slate-900/10 focus:border-slate-900">
+              <option value="included">Precios ya incluyen IVA (Estilo ProChamba)</option>
+              <option value="add">Sumar +16% de IVA al subtotal</option>
+              <option value="none">Sin desglose de IVA (Neto)</option>
+            </select>
+          </div>
+
+          <div>
+            <label class="block text-xs font-semibold text-slate-600 mb-1">Porcentaje de Anticipo (%)</label>
+            <div class="relative">
+              <input type="number" id="in-advance-pct" min="0" max="100" oninput="syncQuoteData()" value="50" class="w-full rounded-xl border border-slate-200 px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-slate-900/10 focus:border-slate-900">
+              <span class="absolute right-3.5 top-2.5 text-sm text-slate-400 font-semibold">%</span>
             </div>
           </div>
 
-          <!-- Desglose Fiscal / Totales -->
-          <div class="pt-4 border-t border-slate-100 space-y-2 text-sm">
-            <div class="flex justify-between text-slate-600">
-              <span>Subtotal</span>
-              <span id="c-subtotal" class="font-medium">$0.00</span>
-            </div>
-            
-            <div id="c-iva-row" class="flex justify-between text-slate-600">
-              <span id="c-iva-title">IVA (16%)</span>
-              <span id="c-iva-amount" class="font-medium">$0.00</span>
-            </div>
-
-            <div class="pt-2 border-t border-slate-200 flex justify-between text-slate-900 font-bold text-base">
-              <span>Total final</span>
-              <span id="c-final-total">$0.00</span>
-            </div>
-            
-            <p id="c-tax-note" class="text-[11px] text-slate-400 italic text-right mt-1">Los precios indicados ya incluyen IVA.</p>
-          </div>
-
-          <!-- Notas y Condiciones -->
-          <div id="c-notes-container" class="pt-4 border-t border-slate-100">
-            <h4 class="text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">Notas y condiciones:</h4>
-            <p id="c-notes" class="text-xs text-slate-600 leading-relaxed whitespace-pre-line bg-slate-50 p-3.5 rounded-xl border border-slate-100">
-              Cotización válida por 15 días. Garantía por escrito en mano de obra.
-            </p>
-          </div>
-
-        </div>
-
-        <!-- 4. ESQUEMA DE PAGO (DOS COLUMNAS) -->
-        <div id="c-payment-scheme" class="grid grid-cols-2 gap-3 page-break">
-          <!-- Tarjeta Anticipo -->
-          <div class="bg-white rounded-3xl p-5 border border-slate-200/80 shadow-sm flex flex-col justify-between">
-            <div>
-              <span id="c-advance-label" class="text-xs font-bold text-slate-500 uppercase tracking-wide block">Anticipo (50%)</span>
-              <p class="text-[11px] text-slate-400 mt-0.5">Para comenzar</p>
-            </div>
-            <div id="c-advance-amount" class="text-xl sm:text-2xl font-extrabold text-slate-900 mt-3">
-              $0<span class="text-xs font-bold text-slate-500">.00</span>
-            </div>
-          </div>
-
-          <!-- Tarjeta Resto -->
-          <div class="bg-white rounded-3xl p-5 border border-slate-200/80 shadow-sm flex flex-col justify-between">
-            <div>
-              <span id="c-rest-label" class="text-xs font-bold text-slate-500 uppercase tracking-wide block">Restante</span>
-              <p class="text-[11px] text-slate-400 mt-0.5">Al entregar / finalizar</p>
-            </div>
-            <div id="c-rest-amount" class="text-xl sm:text-2xl font-extrabold text-slate-900 mt-3">
-              $0<span class="text-xs font-bold text-slate-500">.00</span>
-            </div>
+          <div class="sm:col-span-2">
+            <label class="block text-xs font-semibold text-slate-600 mb-1">Notas y condiciones</label>
+            <textarea id="in-notes" rows="2" oninput="syncQuoteData()" placeholder="Ej. Vigencia de cotización 15 días. Material y piezas aparte." class="w-full rounded-xl border border-slate-200 px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-slate-900/10 focus:border-slate-900"></textarea>
           </div>
         </div>
-
-        <!-- 5. PIE DE CONTACTO DIRECTO (WHATSAPP CALL TO ACTION) -->
-        <div class="no-print space-y-3 pt-2">
-          <a id="btn-whatsapp-ask" href="#" target="_blank" rel="noopener" class="w-full bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white font-bold py-4 px-6 rounded-2xl shadow-lg shadow-emerald-600/20 flex items-center justify-center gap-3 transition-all transform active:scale-[0.99] text-base">
-            <svg class="w-6 h-6 fill-current" viewBox="0 0 24 24">
-              <path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946.003-6.556 5.338-11.891 11.893-11.891 3.181.001 6.167 1.24 8.413 3.488 2.245 2.248 3.481 5.236 3.48 8.414-.003 6.557-5.338 11.892-11.893 11.892-1.99-.001-3.951-.5-5.688-1.448l-6.305 1.654zm6.597-3.807c1.676.995 3.276 1.591 5.392 1.592 5.448 0 9.886-4.434 9.889-9.885.002-5.462-4.415-9.89-9.881-9.892-5.452 0-9.887 4.434-9.889 9.884-.001 2.225.651 3.891 1.746 5.634l-.999 3.648 3.742-.981zm11.387-5.464c-.074-.124-.272-.198-.57-.347-.297-.149-1.758-.868-2.031-.967-.272-.099-.47-.149-.669.149-.198.297-.768.967-.941 1.165-.173.198-.347.223-.644.074-.297-.149-1.255-.462-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.297-.347.446-.521.151-.172.2-.296.3-.495.099-.198.05-.372-.025-.521-.075-.148-.669-1.611-.916-2.206-.242-.579-.487-.501-.669-.51l-.57-.01c-.198 0-.52.074-.792.372s-1.04 1.016-1.04 2.479 1.065 2.876 1.213 3.074c.149.198 2.095 3.2 5.076 4.487.709.306 1.263.489 1.694.626.712.226 1.36.194 1.872.118.571-.085 1.758-.719 2.006-1.413.248-.695.248-1.29.173-1.414z"/>
-            </svg>
-            Tengo una duda / Aprobar
-          </a>
-
-          <div class="text-center text-[11px] text-slate-400">
-            Documento de cotización digital emitido por <span id="c-biz-name-footer" class="font-medium text-slate-500">Soluciones MG</span>.
-          </div>
-        </div>
-
       </div>
 
-    </div>
-  </div>
-
-  <!-- VISTA EDITOR / GENERADOR (MODO DUEÑO DE NEGOCIO) -->
-  <div id="editor-view" class="min-h-screen bg-slate-100 flex flex-col">
-    
-    <!-- Header del sistema -->
-    <header class="bg-slate-900 text-white border-b border-slate-800 sticky top-0 z-30">
-      <div class="max-w-7xl mx-auto px-4 h-16 flex items-center justify-between">
-        <div class="flex items-center gap-3">
-          <div class="w-9 h-9 bg-emerald-500 rounded-xl flex items-center justify-center font-black text-slate-900 text-lg shadow-md">
-            P
-          </div>
+      <!-- Barra de Resumen y Acciones Finales -->
+      <div class="bg-slate-900 text-white rounded-2xl p-5 shadow-lg space-y-4">
+        <div class="flex items-center justify-between">
           <div>
-            <h1 class="font-bold text-sm sm:text-base leading-none">Generador de Cotizaciones</h1>
-            <p class="text-[11px] text-slate-400 mt-0.5">Estilo Web Móvil ProChamba</p>
+            <p class="text-xs text-slate-400 font-medium">Total estimado de la cotización</p>
+            <p id="editor-total-preview" class="text-2xl font-extrabold tracking-tight">$0.00</p>
           </div>
+          <button onclick="setMode(true)" class="px-4 py-2.5 rounded-xl bg-white/10 hover:bg-white/20 text-white text-xs font-semibold transition-colors">
+            Ver como cliente →
+          </button>
         </div>
 
-        <div class="flex items-center gap-2">
-          <button onclick="loadExampleData()" class="text-xs font-semibold bg-slate-800 hover:bg-slate-700 text-slate-200 px-3 py-2 rounded-xl transition-colors border border-slate-700">
-            ⚡ Cargar ejemplo
+        <div class="grid sm:grid-cols-2 gap-3 pt-2">
+          <button id="btn-copy-link" onclick="generateAndCopyLink()" class="w-full bg-emerald-500 hover:bg-emerald-600 text-slate-950 font-bold py-3.5 px-4 rounded-xl transition-all shadow-lg shadow-emerald-500/20 flex items-center justify-center gap-2 text-sm">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"/></svg>
+            Generar Enlace y Copiar
+          </button>
+
+          <button id="btn-wa-link" onclick="sendViaWhatsApp()" class="w-full bg-slate-800 hover:bg-slate-700 text-emerald-400 font-bold py-3.5 px-4 rounded-xl transition-all border border-slate-700 flex items-center justify-center gap-2 text-sm">
+            <svg class="w-4 h-4 fill-current" viewBox="0 0 24 24"><path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946.003-6.556 5.338-11.891 11.893-11.891 3.181.001 6.167 1.24 8.413 3.488 2.245 2.248 3.481 5.236 3.48 8.414-.003 6.557-5.338 11.892-11.893 11.892-1.99-.001-3.951-.5-5.688-1.448l-6.305 1.654zm6.597-3.807c1.676.995 3.276 1.591 5.392 1.592 5.448 0 9.886-4.434 9.889-9.885.002-5.462-4.415-9.89-9.881-9.892-5.452 0-9.887 4.434-9.889 9.884-.001 2.225.651 3.891 1.746 5.634l-.999 3.648 3.742-.981zm11.387-5.464c-.074-.124-.272-.198-.57-.347-.297-.149-1.758-.868-2.031-.967-.272-.099-.47-.149-.669.149-.198.297-.768.967-.941 1.165-.173.198-.347.223-.644.074-.297-.149-1.255-.462-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.297-.347.446-.521.151-.172.2-.296.3-.495.099-.198.05-.372-.025-.521-.075-.148-.669-1.611-.916-2.206-.242-.579-.487-.501-.669-.51l-.57-.01c-.198 0-.52.074-.792.372s-1.04 1.016-1.04 2.479 1.065 2.876 1.213 3.074c.149.198 2.095 3.2 5.076 4.487.709.306 1.263.489 1.694.626.712.226 1.36.194 1.872.118.571-.085 1.758-.719 2.006-1.413.248-.695.248-1.29.173-1.414z"/></svg>
+            Enviar por WhatsApp
           </button>
         </div>
       </div>
-    </header>
 
-    <!-- Contenido principal: Grid de 2 columnas en Desktop, Pestañas en Mobile -->
-    <main class="flex-1 max-w-7xl w-full mx-auto p-4 sm:p-6">
+    </section>
 
-      <!-- Pestañas Móviles (Switch entre Editar y Previa) -->
-      <div class="lg:hidden flex bg-slate-200 p-1 rounded-2xl mb-4 font-semibold text-xs">
-        <button id="tab-btn-edit" onclick="switchMobileTab('edit')" class="flex-1 py-2.5 rounded-xl bg-white text-slate-900 shadow-sm text-center transition-all">
-          ✏️ 1. Editar Datos
-        </button>
-        <button id="tab-btn-preview" onclick="switchMobileTab('preview')" class="flex-1 py-2.5 rounded-xl text-slate-600 text-center transition-all">
-          👁️ 2. Vista Previa Móvil
-        </button>
-      </div>
+    <!-- =================================================================== -->
+    <!-- VISTA 2: VISOR MÓVIL DEL CLIENTE (Réplica exacta de ProChamba)      -->
+    <!-- =================================================================== -->
+    <section id="client-view" class="hidden max-w-[460px] mx-auto px-4 pt-6 pb-12 space-y-5">
+      
+      <!-- 1. Encabezado del Negocio -->
+      <header class="space-y-3">
+        <div class="flex items-center gap-3.5">
+          <!-- Avatar / Logo -->
+          <div id="view-logo-container" class="w-12 h-12 rounded-2xl overflow-hidden shrink-0 flex items-center justify-center font-bold text-white text-lg shadow-sm bg-slate-900">
+            <img id="view-logo-img" src="" alt="Logo" class="w-full h-full object-cover hidden" onerror="this.classList.add('hidden'); document.getElementById('view-logo-initials').classList.remove('hidden');">
+            <span id="view-logo-initials">GO</span>
+          </div>
 
-      <div class="grid lg:grid-cols-12 gap-6 items-start">
+          <div class="min-w-0 flex-1">
+            <h1 id="view-biz-name" class="font-bold text-slate-900 text-lg leading-tight truncate">Nombre del Negocio</h1>
+            <p id="view-biz-contact" class="text-xs text-slate-500 mt-0.5 truncate">Teléfono · correo@ejemplo.com</p>
+          </div>
+        </div>
+
+        <!-- Metadatos: Cotización · Folio · Fecha -->
+        <p class="text-xs font-medium text-slate-500 flex items-center gap-1.5 pt-1">
+          <span class="text-slate-700 font-semibold">Cotización</span>
+          <span aria-hidden="true" class="text-slate-300">·</span>
+          <span id="view-folio">Folio 195</span>
+          <span aria-hidden="true" class="text-slate-300">·</span>
+          <span id="view-date">22/11/2026</span>
+        </p>
+      </header>
+
+      <!-- 2. Tarjeta Principal del Total -->
+      <section class="bg-white rounded-2xl border border-slate-200/80 shadow-sm p-5 flex items-center justify-between">
+        <div>
+          <p class="text-sm font-bold text-slate-900">Total</p>
+          <p id="view-tax-badge" class="text-xs text-slate-500 mt-0.5">IVA incluido</p>
+        </div>
+        <div class="text-right">
+          <p class="text-3xl font-extrabold text-slate-900 tracking-tight">
+            <span id="view-total-int">$0</span><span id="view-total-dec" class="text-base font-bold text-slate-500 align-top ml-0.5">.00</span>
+          </p>
+        </div>
+      </section>
+
+      <!-- 3. Cuerpo de la Cotización (Para, Conceptos, Desglose, Notas) -->
+      <article class="bg-white rounded-2xl border border-slate-200/80 shadow-sm divide-y divide-slate-100 overflow-hidden">
         
-        <!-- COLUMNA IZQUIERDA: FORMULARIO EDITOR (7 cols) -->
-        <div id="panel-editor" class="lg:col-span-7 space-y-6">
-          
-          <!-- SECCIÓN 1: PERFIL DE NEGOCIO (Guardado en LocalStorage) -->
-          <details class="bg-white rounded-3xl p-5 sm:p-6 shadow-sm border border-slate-200/80 group" open>
-            <summary class="font-bold text-slate-900 flex items-center justify-between cursor-pointer list-none">
-              <span class="flex items-center gap-2 text-base">
-                <span class="w-7 h-7 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center text-sm font-extrabold">1</span>
-                Datos de Mi Negocio
-              </span>
-              <span class="text-xs text-emerald-600 bg-emerald-50 px-2.5 py-1 rounded-full font-semibold">Guardado auto</span>
-            </summary>
+        <!-- Sección: Para -->
+        <section class="p-5">
+          <p class="text-[11px] font-semibold uppercase tracking-wider text-slate-400">Para</p>
+          <p id="view-client-name" class="text-base font-bold text-slate-900 mt-1">Cliente de ejemplo</p>
+        </section>
 
-            <div class="mt-4 pt-4 border-t border-slate-100 grid sm:grid-cols-2 gap-4">
-              <div class="sm:col-span-2">
-                <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">Nombre Comercial</label>
-                <input type="text" id="e-biz-name" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-slate-900" placeholder="Ej: Soluciones MG · Hospital de Calentadores">
-              </div>
+        <!-- Sección: Lo que incluye -->
+        <section class="p-5 space-y-3.5">
+          <p class="text-[11px] font-semibold uppercase tracking-wider text-slate-400">Lo que incluye</p>
+          <ul id="view-items-list" class="space-y-4">
+            <!-- Conceptos dinámicos -->
+          </ul>
+        </section>
 
-              <div>
-                <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">Teléfono WhatsApp (10 dígitos)</label>
-                <input type="tel" id="e-biz-phone" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-slate-900" placeholder="5512345678">
-              </div>
-
-              <div>
-                <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">Correo electrónico</label>
-                <input type="email" id="e-biz-email" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-slate-900" placeholder="contacto@minegocio.com">
-              </div>
-
-              <div class="sm:col-span-2">
-                <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">URL de Logo (Opcional)</label>
-                <input type="url" id="e-biz-logo" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-slate-900" placeholder="https://ejemplo.com/logo.png">
-                <p class="text-[11px] text-slate-400 mt-1">Si lo dejas vacío, se usará un avatar moderno con las iniciales de tu negocio.</p>
-              </div>
-
-              <div class="sm:col-span-2">
-                <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">Color del Avatar / Marca</label>
-                <div class="flex items-center gap-3">
-                  <input type="color" id="e-biz-color" value="#0f172a" class="w-10 h-10 rounded-xl cursor-pointer border-0">
-                  <span class="text-xs text-slate-500">Selecciona el color de acento principal.</span>
-                </div>
-              </div>
+        <!-- Sección: Desglose de Subtotal / IVA / Total -->
+        <section id="view-breakdown-section" class="p-5 bg-slate-50/50">
+          <dl class="space-y-2 text-sm">
+            <div class="flex justify-between text-slate-600">
+              <dt>Subtotal</dt>
+              <dd id="view-subtotal" class="font-medium text-slate-900">$0.00</dd>
             </div>
-          </details>
-
-          <!-- SECCIÓN 2: DATOS DE LA COTIZACIÓN -->
-          <div class="bg-white rounded-3xl p-5 sm:p-6 shadow-sm border border-slate-200/80 space-y-4">
-            <h2 class="font-bold text-slate-900 flex items-center gap-2 text-base">
-              <span class="w-7 h-7 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center text-sm font-extrabold">2</span>
-              Datos del Cliente y Configuración
-            </h2>
-
-            <div class="grid sm:grid-cols-2 gap-4">
-              <div>
-                <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">Folio</label>
-                <input type="text" id="e-folio" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-slate-900" value="001">
-              </div>
-
-              <div>
-                <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">Fecha</label>
-                <input type="date" id="e-date" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-slate-900">
-              </div>
-
-              <div class="sm:col-span-2">
-                <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">Nombre del Cliente</label>
-                <input type="text" id="e-client-name" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-slate-900" placeholder="Ej: Ing. Roberto Garza">
-              </div>
-
-              <div>
-                <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">Tratamiento del IVA</label>
-                <select id="e-tax-mode" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-slate-900 font-medium">
-                  <option value="included">Precios YA incluyen IVA (Desglosar 16%)</option>
-                  <option value="add">Sumar 16% de IVA al Subtotal</option>
-                  <option value="none">Sin IVA / Nota simple</option>
-                </select>
-              </div>
-
-              <div>
-                <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">Esquema de Anticipo</label>
-                <select id="e-advance-pct" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-slate-900 font-medium">
-                  <option value="50">50% Anticipo / 50% al finalizar</option>
-                  <option value="60">60% Anticipo / 40% al finalizar</option>
-                  <option value="30">30% Anticipo / 70% al finalizar</option>
-                  <option value="100">100% Anticipado</option>
-                  <option value="0">0% (Pago total contra entrega)</option>
-                </select>
-              </div>
+            <p id="view-tax-note" class="text-[11px] text-slate-400">Los precios de arriba ya incluyen IVA.</p>
+            <div id="view-iva-row" class="flex justify-between text-slate-600">
+              <dt>IVA 16%</dt>
+              <dd id="view-iva-amount" class="font-medium text-slate-900">$0.00</dd>
             </div>
-          </div>
-
-          <!-- SECCIÓN 3: PARTIDAS / CONCEPTOS -->
-          <div class="bg-white rounded-3xl p-5 sm:p-6 shadow-sm border border-slate-200/80 space-y-4">
-            <div class="flex items-center justify-between">
-              <h2 class="font-bold text-slate-900 flex items-center gap-2 text-base">
-                <span class="w-7 h-7 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center text-sm font-extrabold">3</span>
-                Conceptos / Servicios
-              </h2>
-              <button onclick="addItemRow()" class="text-xs font-bold bg-slate-900 hover:bg-slate-800 text-white px-3.5 py-2 rounded-xl transition-all shadow-sm flex items-center gap-1">
-                <span>+</span> Agregar concepto
-              </button>
+            <div class="flex justify-between text-base font-bold text-slate-900 pt-2 border-t border-slate-200/70">
+              <dt>Total</dt>
+              <dd id="view-breakdown-total">$0.00</dd>
             </div>
+          </dl>
+        </section>
 
-            <div id="e-items-container" class="space-y-3">
-              <!-- Filas dinámicas generadas con JS -->
-            </div>
-          </div>
+        <!-- Sección: Notas y condiciones -->
+        <section id="view-notes-section" class="p-5">
+          <p class="text-[11px] font-semibold uppercase tracking-wider text-slate-400">Notas y condiciones</p>
+          <p id="view-notes" class="text-xs text-slate-600 mt-1.5 leading-relaxed whitespace-pre-line">Precios sujetos a cambio sin previo aviso.</p>
+        </section>
 
-          <!-- SECCIÓN 4: NOTAS Y CONDICIONES -->
-          <div class="bg-white rounded-3xl p-5 sm:p-6 shadow-sm border border-slate-200/80 space-y-3">
-            <h2 class="font-bold text-slate-900 flex items-center gap-2 text-base">
-              <span class="w-7 h-7 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center text-sm font-extrabold">4</span>
-              Notas y Condiciones
-            </h2>
-            <textarea id="e-notes" rows="3" class="w-full bg-slate-50 border border-slate-200 rounded-xl p-3.5 text-sm focus:outline-none focus:ring-2 focus:ring-slate-900" placeholder="Ej: Precios vigentes por 15 días. Incluye garantía por escrito."></textarea>
-          </div>
+      </article>
 
-          <!-- SECCIÓN 5: ACCIONES Y COMPARTIR -->
-          <div class="bg-slate-900 text-white rounded-3xl p-6 shadow-xl space-y-4">
-            <h3 class="font-bold text-base flex items-center gap-2">
-              🚀 Generar y Compartir con Cliente
-            </h3>
-            <p class="text-xs text-slate-300">
-              Genera un enlace único comprimido. Al abrirlo, tu cliente verá la cotización limpia exactamente como en la vista previa sin costo de servidor.
-            </p>
-
-            <div class="grid sm:grid-cols-2 gap-3 pt-2">
-              <button onclick="generateAndCopyLink()" class="w-full bg-emerald-500 hover:bg-emerald-600 text-slate-950 font-bold py-3.5 px-4 rounded-xl transition-all shadow-lg shadow-emerald-500/20 flex items-center justify-center gap-2 text-sm">
-                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"/></svg>
-                Generar Enlace y Copiar
-              </button>
-
-              <button onclick="sendViaWhatsApp()" class="w-full bg-slate-800 hover:bg-slate-700 text-emerald-400 font-bold py-3.5 px-4 rounded-xl transition-all border border-slate-700 flex items-center justify-center gap-2 text-sm">
-                <svg class="w-4 h-4 fill-current" viewBox="0 0 24 24"><path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946.003-6.556 5.338-11.891 11.893-11.891 3.181.001 6.167 1.24 8.413 3.488 2.245 2.248 3.481 5.236 3.48 8.414-.003 6.557-5.338 11.892-11.893 11.892-1.99-.001-3.951-.5-5.688-1.448l-6.305 1.654zm6.597-3.807c1.676.995 3.276 1.591 5.392 1.592 5.448 0 9.886-4.434 9.889-9.885.002-5.462-4.415-9.89-9.881-9.892-5.452 0-9.887 4.434-9.889 9.884-.001 2.225.651 3.891 1.746 5.634l-.999 3.648 3.742-.981zm11.387-5.464c-.074-.124-.272-.198-.57-.347-.297-.149-1.758-.868-2.031-.967-.272-.099-.47-.149-.669.149-.198.297-.768.967-.941 1.165-.173.198-.347.223-.644.074-.297-.149-1.255-.462-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.297-.347.446-.521.151-.172.2-.296.3-.495.099-.198.05-.372-.025-.521-.075-.148-.669-1.611-.916-2.206-.242-.579-.487-.501-.669-.51l-.57-.01c-.198 0-.52.074-.792.372s-1.04 1.016-1.04 2.479 1.065 2.876 1.213 3.074c.149.198 2.095 3.2 5.076 4.487.709.306 1.263.489 1.694.626.712.226 1.36.194 1.872.118.571-.085 1.758-.719 2.006-1.413.248-.695.248-1.29.173-1.414z"/></svg>
-                Enviar por WhatsApp
-              </button>
-            </div>
-
-            <div class="flex items-center justify-between text-xs pt-2 border-t border-slate-800 text-slate-400">
-              <button onclick="previewClientMode()" class="hover:text-white underline">
-                Ver como cliente full screen
-              </button>
-              <button onclick="downloadSelfHTML()" class="hover:text-white underline">
-                Descargar este cotizador (.html)
-              </button>
-            </div>
-          </div>
-
+      <!-- 4. Esquema de Pago: Anticipo y Resto (Dos tarjetas lado a lado) -->
+      <section id="view-payment-split" class="grid grid-cols-2 gap-3">
+        <div class="bg-white rounded-2xl border border-slate-200/80 shadow-sm p-4">
+          <p id="view-advance-label" class="text-xs font-semibold text-slate-500">Anticipo (50%)</p>
+          <p class="text-xl font-extrabold text-slate-900 mt-1 tracking-tight">
+            <span id="view-advance-int">$0</span><span id="view-advance-dec" class="text-xs font-bold text-slate-500 align-top ml-0.5">.00</span>
+          </p>
+          <p class="text-[11px] text-slate-400 mt-1">Para empezar</p>
         </div>
 
-        <!-- COLUMNA DERECHA: VISTA PREVIA INTERACTIVA EN TIEMPO REAL (5 cols) -->
-        <div id="panel-preview" class="hidden lg:block lg:col-span-5 sticky top-20">
-          <div class="text-xs font-bold text-slate-500 uppercase tracking-wider mb-2 flex items-center justify-between">
-            <span>Vista Previa en Vivo (Móvil)</span>
-            <span class="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse"></span>
-          </div>
+        <div class="bg-white rounded-2xl border border-slate-200/80 shadow-sm p-4">
+          <p class="text-xs font-semibold text-slate-500">Resto</p>
+          <p class="text-xl font-extrabold text-slate-900 mt-1 tracking-tight">
+            <span id="view-rest-int">$0</span><span id="view-rest-dec" class="text-xs font-bold text-slate-500 align-top ml-0.5">.00</span>
+          </p>
+          <p class="text-[11px] text-slate-400 mt-1">Al terminar el trabajo</p>
+        </div>
+      </section>
 
-          <!-- Marco simulador celular -->
-          <div class="w-full max-w-[420px] mx-auto bg-slate-900 p-3 rounded-[40px] shadow-2xl border-4 border-slate-800">
-            <!-- Muesca / Altavoz del cel -->
-            <div class="w-24 h-4 bg-slate-800 rounded-full mx-auto mb-3"></div>
-            
-            <!-- Pantalla del celular -->
-            <div id="live-preview-container" class="bg-slate-100 rounded-[30px] p-3 max-h-[75vh] overflow-y-auto">
-              <!-- Aquí se replica la vista previa en tiempo real -->
-            </div>
-          </div>
+      <!-- 5. Pie de Contacto Directo (WhatsApp CTA) -->
+      <footer class="pt-3 space-y-4 text-center">
+        <div class="bg-white rounded-2xl border border-slate-200/80 shadow-sm p-4 space-y-3">
+          <p class="text-xs text-slate-500">
+            ¿Alguna duda? <span id="view-footer-biz" class="font-semibold text-slate-700">Negocio</span> · <span id="view-footer-phone">0000000000</span>
+          </p>
+          <a id="view-wa-btn" href="#" target="_blank" rel="noopener noreferrer" class="w-full py-3.5 px-5 rounded-xl bg-emerald-600 hover:bg-emerald-700 active:scale-[0.99] text-white font-bold text-sm transition-all shadow-sm flex items-center justify-center gap-2">
+            <svg class="w-4 h-4 fill-current" viewBox="0 0 24 24"><path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946.003-6.556 5.338-11.891 11.893-11.891 3.181.001 6.167 1.24 8.413 3.488 2.245 2.248 3.481 5.236 3.48 8.414-.003 6.557-5.338 11.892-11.893 11.892-1.99-.001-3.951-.5-5.688-1.448l-6.305 1.654zm6.597-3.807c1.676.995 3.276 1.591 5.392 1.592 5.448 0 9.886-4.434 9.889-9.885.002-5.462-4.415-9.89-9.881-9.892-5.452 0-9.887 4.434-9.889 9.884-.001 2.225.651 3.891 1.746 5.634l-.999 3.648 3.742-.981zm11.387-5.464c-.074-.124-.272-.198-.57-.347-.297-.149-1.758-.868-2.031-.967-.272-.099-.47-.149-.669.149-.198.297-.768.967-.941 1.165-.173.198-.347.223-.644.074-.297-.149-1.255-.462-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.297-.347.446-.521.151-.172.2-.296.3-.495.099-.198.05-.372-.025-.521-.075-.148-.669-1.611-.916-2.206-.242-.579-.487-.501-.669-.51l-.57-.01c-.198 0-.52.074-.792.372s-1.04 1.016-1.04 2.479 1.065 2.876 1.213 3.074c.149.198 2.095 3.2 5.076 4.487.709.306 1.263.489 1.694.626.712.226 1.36.194 1.872.118.571-.085 1.758-.719 2.006-1.413.248-.695.248-1.29.173-1.414z"/></svg>
+            Tengo una duda
+          </a>
         </div>
 
-      </div>
+        <p class="text-[11px] text-slate-400">
+          Documento digital generado por <span id="view-brand-credit" class="font-semibold text-slate-500">GODE</span>
+        </p>
+      </footer>
 
-    </main>
+    </section>
+
+  </main>
+
+  <!-- NOTIFICACIÓN FLOTANTE (Toast) -->
+  <div id="toast" class="fixed bottom-5 left-1/2 -translate-x-1/2 z-50 bg-slate-900 text-white text-xs font-semibold px-4 py-3 rounded-xl shadow-xl flex items-center gap-2 transition-all duration-300 opacity-0 pointer-events-none translate-y-3">
+    <span id="toast-icon" class="text-emerald-400">✓</span>
+    <span id="toast-msg">Enlace copiado al portapapeles</span>
   </div>
 
-  <!-- COMPRESOR LZSTRING SIMPLE Y LIGERO ENLINEA -->
+  <!-- CODIFICADOR SEGURO DE URL -->
   <script>
-    // Sistema ligero de Codificación / Decodificación URL Safe Base64 + JSON
     const DataCodec = {
       encode: function(obj) {
         try {
-          const jsonStr = JSON.stringify(obj);
-          // Convertir UTF-8 a Base64 URL-safe
+          // Omitimos logos en Base64 gigante para que el enlace sea corto y nunca lo corte WhatsApp
+          const safeLogo = (obj.biz.logo && !obj.biz.logo.startsWith('data:')) ? obj.biz.logo : '';
+          
+          const compact = {
+            b: [
+              obj.biz.name,
+              obj.biz.phone,
+              obj.biz.email,
+              safeLogo,
+              obj.biz.color
+            ],
+            f: obj.folio,
+            d: obj.date,
+            c: obj.client,
+            t: obj.taxMode === 'included' ? 1 : (obj.taxMode === 'add' ? 2 : 0),
+            a: obj.advancePct,
+            i: obj.items.map(it => [it.desc, it.qty, it.price]),
+            n: obj.notes
+          };
+
+          const jsonStr = JSON.stringify(compact);
           const base64 = btoa(encodeURIComponent(jsonStr).replace(/%([0-9A-F]{2})/g, function(match, p1) {
             return String.fromCharCode('0x' + p1);
           }));
@@ -463,14 +415,35 @@
       },
       decode: function(str) {
         try {
-          let base64 = str.replace(/-/g, '+').replace(/_/g, '/');
-          while (base64.length % 4) {
-            base64 += '=';
-          }
+          if (!str) return null;
+          // Limpiar posibles caracteres extra si WhatsApp pegó algo al final
+          const cleanStr = str.trim().split('&')[0].split(' ')[0];
+          let base64 = cleanStr.replace(/-/g, '+').replace(/_/g, '/');
+          while (base64.length % 4) base64 += '=';
           const jsonStr = decodeURIComponent(Array.from(atob(base64)).map(function(c) {
             return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
           }).join(''));
-          return JSON.parse(jsonStr);
+
+          const parsed = JSON.parse(jsonStr);
+          if (parsed.b && Array.isArray(parsed.b)) {
+            return {
+              biz: {
+                name: parsed.b[0] || '',
+                phone: parsed.b[1] || '',
+                email: parsed.b[2] || '',
+                logo: parsed.b[3] || '',
+                color: parsed.b[4] || '#0f172a'
+              },
+              folio: parsed.f || '001',
+              date: parsed.d || '',
+              client: parsed.c || 'Cliente General',
+              taxMode: parsed.t === 1 ? 'included' : (parsed.t === 2 ? 'add' : 'none'),
+              advancePct: parsed.a ?? 50,
+              items: (parsed.i || []).map(arr => ({ desc: arr[0], qty: arr[1], price: arr[2] })),
+              notes: parsed.n || ''
+            };
+          }
+          return parsed;
         } catch (e) {
           console.error("Error al decodificar:", e);
           return null;
@@ -479,369 +452,519 @@
     };
   </script>
 
-  <!-- LÓGICA PRINCIPAL DE LA APLICACIÓN -->
+  <!-- LÓGICA DE LA APLICACIÓN -->
   <script>
-    // Estado global de la cotización
-    let currentData = {
+    // Estado por defecto de ejemplo
+    const DEFAULT_STATE = {
       biz: {
-        name: 'Soluciones MG · Hospital de Calentadores',
-        phone: '5512345678',
-        email: 'contacto@solucionesmg.com',
-        logo: '',
-        color: '#0f172a'
+        name: "GODE Servicios Técnicos",
+        phone: "7713530291",
+        email: "contacto@gode.mx",
+        logo: "",
+        color: "#0f172a"
       },
-      folio: '001',
+      folio: "001",
       date: new Date().toISOString().split('T')[0],
-      client: 'Ing. Roberto Garza',
-      taxMode: 'included', // included, add, none
+      client: "Cliente de ejemplo",
+      taxMode: "included", // 'included' | 'add' | 'none'
       advancePct: 50,
       items: [
-        { desc: 'Mantenimiento preventivo general a calentador solar 150L', qty: 1, price: 1850 },
-        { desc: 'Reemplazo de barra de ánodo de magnesio y empaques de silicio', qty: 1, price: 650 },
-        { desc: 'Diagnóstico y purga de red hidráulica en azotea', qty: 1, price: 400 }
+        { desc: "Mantenimiento preventivo y revisión general", qty: 1, price: 950 },
+        { desc: "Instalación y ajuste de componentes", qty: 2, price: 400 }
       ],
-      notes: 'Cotización válida por 15 días naturales.\nIncluye garantía de 90 días por escrito en mano de obra.\nNo incluye material hidráulico extraordinario no contemplado.'
+      notes: "Cotización válida por 15 días naturales.\nMaterial y piezas especiales se cotizan por separado."
     };
 
-    // Inicialización al cargar la página
+    let currentData = JSON.parse(JSON.stringify(DEFAULT_STATE));
+    let isClientMode = false;
+    let isLockedClientView = false;
+
+    // 1. INICIALIZACIÓN: Detectar si viene una cotización en la URL (?q=... o #q=...)
     window.addEventListener('DOMContentLoaded', () => {
-      // Intentar cargar perfil de negocio guardado previamente
-      loadSavedBizProfile();
-
-      // Verificar si venimos con parámetro ?q= o #q= en la URL (MODO CLIENTE)
       const urlParams = new URLSearchParams(window.location.search);
-      const hash = window.location.hash.substring(1);
-      const queryData = urlParams.get('q') || (hash.startsWith('q=') ? hash.substring(2) : null);
+      let sharedData = urlParams.get('q');
 
-      if (queryData) {
-        const decoded = DataCodec.decode(queryData);
+      // Respaldo: leer también desde el hash (#q=...) para evitar pérdidas en redirecciones o redes sociales
+      if (!sharedData && window.location.hash && window.location.hash.includes('q=')) {
+        const hashParams = new URLSearchParams(window.location.hash.substring(1));
+        sharedData = hashParams.get('q');
+      }
+
+      if (sharedData) {
+        const decoded = DataCodec.decode(sharedData);
         if (decoded) {
           currentData = decoded;
-          showClientView();
+          isLockedClientView = true;
+          // Ocultar la barra superior de edición para que el cliente solo vea su cotización limpia
+          const topBar = document.getElementById('top-bar');
+          if (topBar) topBar.classList.add('hidden');
+          setMode(true); // Abrir directamente en Visor de Cliente
           return;
         }
       }
 
-      // Si no hay parámetro, inicializar en MODO EDITOR
-      document.getElementById('e-date').value = currentData.date;
-      initEditorFields();
-      renderEditorItems();
-      updateCalculationsAndPreview();
+      // Si no hay parámetro en URL, cargar perfil guardado en localStorage (Modo Dueño / Editor)
+      loadBusinessProfile();
+      populateEditorFields();
+      renderClientView();
+      setMode(false);
     });
 
-    // Carga perfil guardado en LocalStorage
-    function loadSavedBizProfile() {
-      const saved = localStorage.getItem('prochamba_biz_profile');
-      if (saved) {
-        try {
-          const parsed = JSON.parse(saved);
-          currentData.biz = { ...currentData.biz, ...parsed };
-        } catch (e) {}
+    // Carga datos del negocio guardados en el dispositivo
+    function loadBusinessProfile() {
+      try {
+        const savedBiz = localStorage.getItem('prochamba_biz_profile');
+        if (savedBiz) {
+          currentData.biz = { ...currentData.biz, ...JSON.parse(savedBiz) };
+        }
+        const lastFolio = localStorage.getItem('prochamba_last_folio');
+        if (lastFolio && !isNaN(parseInt(lastFolio))) {
+          currentData.folio = String(parseInt(lastFolio) + 1).padStart(lastFolio.length, '0');
+        }
+      } catch (e) {
+        console.warn("No se pudo leer localStorage:", e);
       }
+    }
+
+    // Procesa la imagen subida por el usuario y la comprime a un tamaño ligero
+    function handleLogoUpload(event) {
+      const file = event.target.files[0];
+      if (!file) return;
+
+      if (!file.type.startsWith('image/')) {
+        showToast('Por favor selecciona un archivo de imagen válido', '⚠️');
+        return;
+      }
+
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        const img = new Image();
+        img.onload = function() {
+          const canvas = document.createElement('canvas');
+          const maxSize = 140;
+          let width = img.width;
+          let height = img.height;
+
+          if (width > height) {
+            if (width > maxSize) {
+              height = Math.round((height * maxSize) / width);
+              width = maxSize;
+            }
+          } else {
+            if (height > maxSize) {
+              width = Math.round((width * maxSize) / height);
+              height = maxSize;
+            }
+          }
+
+          canvas.width = width;
+          canvas.height = height;
+          const ctx = canvas.getContext('2d');
+          ctx.drawImage(img, 0, 0, width, height);
+
+          const compressedDataUrl = canvas.toDataURL('image/webp', 0.82);
+          document.getElementById('in-biz-logo').value = compressedDataUrl;
+          updateLogoClearButton();
+          saveAndSync();
+          showToast('Logo cargado para vista previa e impresión', '🖼️');
+        };
+        img.src = e.target.result;
+      };
+      reader.readAsDataURL(file);
+    }
+
+    // Limpia el logo para volver a usar las iniciales
+    function clearLogo() {
+      document.getElementById('in-biz-logo').value = '';
+      document.getElementById('in-biz-logo-file').value = '';
+      updateLogoClearButton();
+      saveAndSync();
+      showToast('Logo eliminado. Se usarán las iniciales', '✓');
+    }
+
+    function updateLogoClearButton() {
+      const val = document.getElementById('in-biz-logo').value.trim();
+      const btnClear = document.getElementById('btn-clear-logo');
+      if (val) {
+        btnClear.classList.remove('hidden');
+      } else {
+        btnClear.classList.add('hidden');
+      }
+    }
+
+    // Guarda datos del negocio en localStorage y actualiza vista
+    function saveAndSync() {
+      currentData.biz.name = document.getElementById('in-biz-name').value.trim() || "Mi Negocio";
+      currentData.biz.phone = document.getElementById('in-biz-phone').value.trim();
+      currentData.biz.email = document.getElementById('in-biz-email').value.trim();
+      currentData.biz.logo = document.getElementById('in-biz-logo').value.trim();
+      currentData.biz.color = document.getElementById('in-biz-color').value;
+      updateLogoClearButton();
+
+      try {
+        localStorage.setItem('prochamba_biz_profile', JSON.stringify(currentData.biz));
+      } catch (e) {}
+
+      renderClientView();
+    }
+
+    // Sincroniza campos de la cotización actual
+    function syncQuoteData() {
+      currentData.client = document.getElementById('in-client-name').value.trim() || "Cliente General";
+      currentData.folio = document.getElementById('in-folio').value.trim() || "001";
+      currentData.date = document.getElementById('in-date').value;
+      currentData.taxMode = document.getElementById('in-tax-mode').value;
       
-      const lastFolio = localStorage.getItem('prochamba_last_folio');
-      if (lastFolio) {
-        const nextFolio = String(parseInt(lastFolio) + 1).padStart(3, '0');
-        currentData.folio = nextFolio;
-      }
+      let adv = parseFloat(document.getElementById('in-advance-pct').value);
+      if (isNaN(adv) || adv < 0) adv = 0;
+      if (adv > 100) adv = 100;
+      currentData.advancePct = adv;
+
+      currentData.notes = document.getElementById('in-notes').value;
+
+      updateEditorSummary();
+      renderClientView();
     }
 
-    // Guarda el perfil de negocio en LocalStorage
-    function saveBizProfile() {
-      localStorage.setItem('prochamba_biz_profile', JSON.stringify(currentData.biz));
+    // Rellena los inputs del formulario con currentData
+    function populateEditorFields() {
+      document.getElementById('in-biz-name').value = currentData.biz.name;
+      document.getElementById('in-biz-phone').value = currentData.biz.phone;
+      document.getElementById('in-biz-email').value = currentData.biz.email;
+      document.getElementById('in-biz-logo').value = currentData.biz.logo;
+      document.getElementById('in-biz-color').value = currentData.biz.color || "#0f172a";
+      updateLogoClearButton();
+
+      document.getElementById('in-client-name').value = currentData.client;
+      document.getElementById('in-folio').value = currentData.folio;
+      document.getElementById('in-date').value = currentData.date;
+      document.getElementById('in-tax-mode').value = currentData.taxMode;
+      document.getElementById('in-advance-pct').value = currentData.advancePct;
+      document.getElementById('in-notes').value = currentData.notes;
+
+      renderEditorItems();
+      updateEditorSummary();
     }
 
-    // Inicializa inputs del editor con currentData
-    function initEditorFields() {
-      document.getElementById('e-biz-name').value = currentData.biz.name;
-      document.getElementById('e-biz-phone').value = currentData.biz.phone;
-      document.getElementById('e-biz-email').value = currentData.biz.email;
-      document.getElementById('e-biz-logo').value = currentData.biz.logo || '';
-      document.getElementById('e-biz-color').value = currentData.biz.color || '#0f172a';
-
-      document.getElementById('e-folio').value = currentData.folio;
-      document.getElementById('e-client-name').value = currentData.client;
-      document.getElementById('e-tax-mode').value = currentData.taxMode;
-      document.getElementById('e-advance-pct').value = currentData.advancePct;
-      document.getElementById('e-notes').value = currentData.notes;
-
-      // Event listeners para actualizar en tiempo real
-      const inputs = ['e-biz-name', 'e-biz-phone', 'e-biz-email', 'e-biz-logo', 'e-biz-color', 'e-folio', 'e-date', 'e-client-name', 'e-tax-mode', 'e-advance-pct', 'e-notes'];
-      inputs.forEach(id => {
-        document.getElementById(id).addEventListener('input', readEditorInputs);
-      });
-    }
-
-    // Lee los datos del editor
-    function readEditorInputs() {
-      currentData.biz.name = document.getElementById('e-biz-name').value || 'Mi Negocio';
-      currentData.biz.phone = document.getElementById('e-biz-phone').value.replace(/\D/g, '');
-      currentData.biz.email = document.getElementById('e-biz-email').value;
-      currentData.biz.logo = document.getElementById('e-biz-logo').value;
-      currentData.biz.color = document.getElementById('e-biz-color').value;
-
-      currentData.folio = document.getElementById('e-folio').value || '001';
-      currentData.date = document.getElementById('e-date').value;
-      currentData.client = document.getElementById('e-client-name').value || 'Cliente General';
-      currentData.taxMode = document.getElementById('e-tax-mode').value;
-      currentData.advancePct = parseFloat(document.getElementById('e-advance-pct').value) || 0;
-      currentData.notes = document.getElementById('e-notes').value;
-
-      saveBizProfile();
-      updateCalculationsAndPreview();
-    }
-
-    // Renderiza las filas de partidas en el Editor
+    // Renderiza la lista editable de conceptos
     function renderEditorItems() {
-      const container = document.getElementById('e-items-container');
+      const container = document.getElementById('items-editor-list');
       container.innerHTML = '';
 
-      currentData.items.forEach((item, index) => {
+      currentData.items.forEach((item, idx) => {
         const row = document.createElement('div');
-        row.className = 'flex flex-col sm:flex-row items-stretch sm:items-center gap-2 bg-slate-50 p-3 rounded-2xl border border-slate-200/80';
+        row.className = 'p-3.5 rounded-xl bg-slate-50 border border-slate-200/80 space-y-2.5 relative group';
         row.innerHTML = `
-          <div class="flex-1">
-            <input type="text" value="${escapeHtml(item.desc)}" oninput="updateItem(${index}, 'desc', this.value)" class="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-slate-900" placeholder="Descripción del servicio o refacción">
+          <div class="flex items-start justify-between gap-2">
+            <div class="flex-1">
+              <label class="block text-[11px] font-semibold text-slate-500 mb-1">Descripción del trabajo o servicio #${idx + 1}</label>
+              <input type="text" value="${escapeHtml(item.desc)}" oninput="updateItem(${idx}, 'desc', this.value)" placeholder="Ej. Instalación de contacto doble" class="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm focus:outline-none focus:border-slate-900">
+            </div>
+            ${currentData.items.length > 1 ? `
+              <button onclick="removeItem(${idx})" class="mt-5 p-2 text-slate-400 hover:text-rose-600 rounded-lg hover:bg-rose-50 transition-colors" title="Eliminar concepto">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+              </button>
+            ` : ''}
           </div>
-          <div class="flex items-center gap-2">
-            <div class="w-20">
-              <input type="number" min="1" value="${item.qty}" oninput="updateItem(${index}, 'qty', this.value)" class="w-full bg-white border border-slate-200 rounded-xl px-2.5 py-2 text-sm text-center focus:outline-none focus:ring-2 focus:ring-slate-900" placeholder="Cant.">
+          <div class="grid grid-cols-3 gap-2.5">
+            <div>
+              <label class="block text-[11px] font-semibold text-slate-500 mb-1">Cantidad</label>
+              <input type="number" step="any" min="0" value="${item.qty}" oninput="updateItem(${idx}, 'qty', this.value)" class="w-full rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-sm focus:outline-none focus:border-slate-900">
             </div>
-            <div class="w-28">
-              <input type="number" min="0" step="0.01" value="${item.price}" oninput="updateItem(${index}, 'price', this.value)" class="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-sm text-right focus:outline-none focus:ring-2 focus:ring-slate-900" placeholder="Precio U.">
+            <div>
+              <label class="block text-[11px] font-semibold text-slate-500 mb-1">Precio Unitario</label>
+              <div class="relative">
+                <span class="absolute left-2.5 top-1.5 text-xs text-slate-400">$</span>
+                <input type="number" step="any" min="0" value="${item.price}" oninput="updateItem(${idx}, 'price', this.value)" class="w-full rounded-lg border border-slate-200 bg-white pl-6 pr-2.5 py-1.5 text-sm focus:outline-none focus:border-slate-900">
+              </div>
             </div>
-            <button onclick="removeItemRow(${index})" class="w-9 h-9 flex items-center justify-center bg-red-50 text-red-600 rounded-xl hover:bg-red-100 transition-colors">
-              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
-            </button>
+            <div>
+              <label class="block text-[11px] font-semibold text-slate-500 mb-1">Importe</label>
+              <div class="w-full rounded-lg bg-slate-100 px-3 py-1.5 text-sm font-bold text-slate-800 text-right truncate" id="item-sub-${idx}">
+                ${formatCurrency((item.qty || 0) * (item.price || 0))}
+              </div>
+            </div>
           </div>
         `;
         container.appendChild(row);
       });
+
+      document.getElementById('editor-items-count').textContent = `${currentData.items.length} ${currentData.items.length === 1 ? 'concepto' : 'conceptos'}`;
+    }
+
+    function updateItem(index, field, value) {
+      if (field === 'desc') {
+        currentData.items[index].desc = value;
+      } else {
+        const num = parseFloat(value);
+        currentData.items[index][field] = isNaN(num) ? 0 : num;
+        const subEl = document.getElementById(`item-sub-${index}`);
+        if (subEl) {
+          subEl.textContent = formatCurrency(currentData.items[index].qty * currentData.items[index].price);
+        }
+      }
+      updateEditorSummary();
+      renderClientView();
     }
 
     function addItemRow() {
-      currentData.items.push({ desc: '', qty: 1, price: 0 });
+      currentData.items.push({ desc: "", qty: 1, price: 0 });
       renderEditorItems();
-      updateCalculationsAndPreview();
+      updateEditorSummary();
     }
 
-    function removeItemRow(index) {
-      if (currentData.items.length <= 1) {
-        showToast('Debe haber al menos un concepto', '⚠️');
-        return;
-      }
+    function removeItem(index) {
+      if (currentData.items.length <= 1) return;
       currentData.items.splice(index, 1);
       renderEditorItems();
-      updateCalculationsAndPreview();
+      updateEditorSummary();
+      renderClientView();
     }
 
-    function updateItem(index, key, value) {
-      if (key === 'qty' || key === 'price') {
-        currentData.items[index][key] = parseFloat(value) || 0;
-      } else {
-        currentData.items[index][key] = value;
-      }
-      updateCalculationsAndPreview();
+    function resetQuoteOnly() {
+      const nextFolio = !isNaN(parseInt(currentData.folio)) 
+        ? String(parseInt(currentData.folio) + 1).padStart(currentData.folio.length, '0') 
+        : currentData.folio;
+
+      currentData.folio = nextFolio;
+      currentData.date = new Date().toISOString().split('T')[0];
+      currentData.client = "";
+      currentData.items = [{ desc: "", qty: 1, price: 0 }];
+      populateEditorFields();
+      showToast('Cotización limpia lista para llenar', '✨');
     }
 
-    // Calcula subtotales, IVA, Total, Anticipo y actualiza Vistas
-    function updateCalculationsAndPreview() {
-      // 1. Calcular subtotal directo de las partidas
-      let rawSubtotal = 0;
-      currentData.items.forEach(item => {
-        rawSubtotal += (item.qty * item.price);
-      });
-
-      let subtotal = 0;
+    // Cálculos financieros centrales
+    function calculateTotals() {
+      const rawSum = currentData.items.reduce((acc, item) => acc + ((item.qty || 0) * (item.price || 0)), 0);
+      let subtotal = rawSum;
       let iva = 0;
-      let total = 0;
+      let total = rawSum;
 
       if (currentData.taxMode === 'included') {
-        total = rawSubtotal;
+        total = rawSum;
         subtotal = total / 1.16;
         iva = total - subtotal;
       } else if (currentData.taxMode === 'add') {
-        subtotal = rawSubtotal;
+        subtotal = rawSum;
         iva = subtotal * 0.16;
         total = subtotal + iva;
-      } else { // none
-        subtotal = rawSubtotal;
+      } else {
+        subtotal = rawSum;
         iva = 0;
-        total = subtotal;
+        total = rawSum;
       }
 
-      const advance = (total * (currentData.advancePct / 100));
+      const advance = total * ((currentData.advancePct || 0) / 100);
       const rest = total - advance;
 
-      // Actualizar DOM en Vista Cliente / Previa
-      renderClientDOM({ subtotal, iva, total, advance, rest });
-
-      // Duplicar en la Vista Previa del Simulador Celular en el Editor
-      const clientContent = document.getElementById('client-view').querySelector('.max-w-\\[460px\\]').cloneNode(true);
-      // Remover botones superiores del clon
-      const topBar = clientContent.querySelector('.no-print');
-      if (topBar) topBar.remove();
-      
-      const livePreview = document.getElementById('live-preview-container');
-      livePreview.innerHTML = '';
-      livePreview.appendChild(clientContent);
+      return { rawSum, subtotal, iva, total, advance, rest };
     }
 
-    // Renderiza los datos en los elementos HTML del visor cliente
-    function renderClientDOM(calc) {
-      // Negocio
-      document.getElementById('c-biz-name').textContent = currentData.biz.name;
-      document.getElementById('c-biz-phone').textContent = formatPhone(currentData.biz.phone);
-      document.getElementById('c-biz-email').textContent = currentData.biz.email || '';
+    function updateEditorSummary() {
+      const totals = calculateTotals();
+      document.getElementById('editor-total-preview').textContent = formatCurrency(totals.total);
+    }
+
+    // Renderiza la vista exacta del cliente (Estilo ProChamba)
+    function renderClientView() {
+      const totals = calculateTotals();
+
+      // 1. Header Negocio y Logo
+      document.getElementById('view-biz-name').textContent = currentData.biz.name || "Mi Negocio";
       
-      // Logo / Iniciales
-      const logoImg = document.getElementById('c-logo-img');
-      const initialsSpan = document.getElementById('c-logo-initials');
-      const logoContainer = document.getElementById('c-logo-container');
+      const contactParts = [];
+      if (currentData.biz.phone) contactParts.push(currentData.biz.phone);
+      if (currentData.biz.email) contactParts.push(currentData.biz.email);
+      document.getElementById('view-biz-contact').textContent = contactParts.join(' · ') || 'Cotización de servicios';
+
+      const logoContainer = document.getElementById('view-logo-container');
+      const logoImg = document.getElementById('view-logo-img');
+      const logoInitials = document.getElementById('view-logo-initials');
       
       logoContainer.style.backgroundColor = currentData.biz.color || '#0f172a';
+      const initials = (currentData.biz.name || 'GO')
+        .split(' ')
+        .map(w => w[0])
+        .filter(Boolean)
+        .slice(0, 2)
+        .join('')
+        .toUpperCase();
+      logoInitials.textContent = initials || 'GO';
 
       if (currentData.biz.logo) {
         logoImg.src = currentData.biz.logo;
         logoImg.classList.remove('hidden');
-        initialsSpan.classList.add('hidden');
+        logoInitials.classList.add('hidden');
       } else {
         logoImg.classList.add('hidden');
-        initialsSpan.classList.remove('hidden');
-        initialsSpan.textContent = getInitials(currentData.biz.name);
+        logoInitials.classList.remove('hidden');
       }
 
-      // Folio y Fecha
-      document.getElementById('c-folio').textContent = `Folio ${currentData.folio}`;
-      document.getElementById('c-date').textContent = formatDate(currentData.date);
+      // Folio y Fecha formateada DD/MM/YYYY
+      document.getElementById('view-folio').textContent = `Folio ${currentData.folio || '001'}`;
+      document.getElementById('view-date').textContent = formatDateDisplay(currentData.date);
 
-      // Total Destacado
-      const formattedTotal = formatMoneyParts(calc.total);
-      document.getElementById('c-total-display').innerHTML = `$${formattedTotal.int}<span class="text-lg font-bold opacity-80">.${formattedTotal.dec}</span>`;
-      
-      const taxLabel = document.getElementById('c-tax-label');
-      if (currentData.taxMode === 'none') {
-        taxLabel.textContent = 'Sin IVA / Nota simple';
-      } else {
-        taxLabel.textContent = 'IVA incluido';
-      }
+      // 2. Tarjeta Principal Total
+      const [totInt, totDec] = splitCurrency(totals.total);
+      document.getElementById('view-total-int').textContent = totInt;
+      document.getElementById('view-total-dec').textContent = `.${totDec}`;
 
-      // Cliente
-      document.getElementById('c-client-name').textContent = currentData.client;
+      const taxBadge = document.getElementById('view-tax-badge');
+      if (currentData.taxMode === 'included') taxBadge.textContent = 'IVA incluido';
+      else if (currentData.taxMode === 'add') taxBadge.textContent = 'IVA 16% incluido';
+      else taxBadge.textContent = 'Importe neto';
 
-      // Items
-      const itemsList = document.getElementById('c-items-list');
-      itemsList.innerHTML = '';
+      // 3. Cliente y Lista de Conceptos
+      document.getElementById('view-client-name').textContent = currentData.client || 'Cliente General';
+
+      const listEl = document.getElementById('view-items-list');
+      listEl.innerHTML = '';
       currentData.items.forEach(item => {
-        const itemTotal = item.qty * item.price;
-        const div = document.createElement('div');
-        div.className = 'py-3 flex items-start justify-between gap-3';
-        div.innerHTML = `
-          <div class="min-w-0 flex-1">
-            <p class="font-bold text-slate-800 text-sm leading-snug">${escapeHtml(item.desc || 'Concepto sin descripción')}</p>
-            <p class="text-xs text-slate-400 mt-0.5">${item.qty} × $${formatNumber(item.price)}</p>
+        if (!item.desc && !item.price) return;
+        const lineTotal = (item.qty || 0) * (item.price || 0);
+        const li = document.createElement('li');
+        li.className = 'flex items-start justify-between gap-4';
+        li.innerHTML = `
+          <div class="space-y-0.5 flex-1">
+            <p class="text-sm font-medium text-slate-800 leading-snug">${escapeHtml(item.desc || 'Servicio')}</p>
+            <p class="text-xs text-slate-400 font-medium">${item.qty} × ${formatCurrency(item.price)}</p>
           </div>
-          <div class="font-semibold text-slate-900 text-sm flex-shrink-0">
-            $${formatNumber(itemTotal)}
-          </div>
+          <span class="text-sm font-bold text-slate-900 shrink-0">${formatCurrency(lineTotal)}</span>
         `;
-        itemsList.appendChild(div);
+        listEl.appendChild(li);
       });
 
-      // Totales y Desglose
-      document.getElementById('c-subtotal').textContent = `$${formatNumber(calc.subtotal)}`;
-      
-      const ivaRow = document.getElementById('c-iva-row');
-      const taxNote = document.getElementById('c-tax-note');
+      // Desglose Fiscal
+      const breakdownSection = document.getElementById('view-breakdown-section');
+      const taxNote = document.getElementById('view-tax-note');
+      const ivaRow = document.getElementById('view-iva-row');
 
       if (currentData.taxMode === 'none') {
-        ivaRow.classList.add('hidden');
-        taxNote.textContent = 'Precios sin desglose de IVA.';
+        breakdownSection.classList.add('hidden');
       } else {
+        breakdownSection.classList.remove('hidden');
         ivaRow.classList.remove('hidden');
-        document.getElementById('c-iva-amount').textContent = `$${formatNumber(calc.iva)}`;
+        document.getElementById('view-subtotal').textContent = formatCurrency(totals.subtotal);
+        document.getElementById('view-iva-amount').textContent = formatCurrency(totals.iva);
+        document.getElementById('view-breakdown-total').textContent = formatCurrency(totals.total);
+
         if (currentData.taxMode === 'included') {
-          taxNote.textContent = 'Los precios de arriba ya incluyen IVA (16%).';
+          taxNote.classList.remove('hidden');
+          taxNote.textContent = 'Los precios de arriba ya incluyen IVA.';
         } else {
-          taxNote.textContent = 'Precios subtotal más 16% de IVA desglosado.';
+          taxNote.classList.add('hidden');
         }
       }
 
-      document.getElementById('c-final-total').textContent = `$${formatNumber(calc.total)}`;
-
-      // Notas
-      const notesContainer = document.getElementById('c-notes-container');
-      if (currentData.notes && currentData.notes.trim()) {
-        notesContainer.classList.remove('hidden');
-        document.getElementById('c-notes').textContent = currentData.notes;
+      // Notas y condiciones
+      const notesSec = document.getElementById('view-notes-section');
+      if (currentData.notes && currentData.notes.trim() !== '') {
+        notesSec.classList.remove('hidden');
+        document.getElementById('view-notes').textContent = currentData.notes;
       } else {
-        notesContainer.classList.add('hidden');
+        notesSec.classList.add('hidden');
       }
 
-      // Esquema de Pago
-      const advanceLabel = document.getElementById('c-advance-label');
-      const advanceAmount = document.getElementById('c-advance-amount');
-      const restLabel = document.getElementById('c-rest-label');
-      const restAmount = document.getElementById('c-rest-amount');
+      // 4. Anticipo y Resto
+      const splitSec = document.getElementById('view-payment-split');
+      if (currentData.advancePct > 0 && currentData.advancePct < 100) {
+        splitSec.classList.remove('hidden');
+        document.getElementById('view-advance-label').textContent = `Anticipo (${currentData.advancePct}%)`;
+        const [advInt, advDec] = splitCurrency(totals.advance);
+        document.getElementById('view-advance-int').textContent = advInt;
+        document.getElementById('view-advance-dec').textContent = `.${advDec}`;
 
-      if (currentData.advancePct === 0) {
-        advanceLabel.textContent = 'Anticipo';
-        advanceAmount.innerHTML = `<span class="text-base font-bold text-slate-500">$0.00</span>`;
-        restLabel.textContent = 'Pago Final';
-        restAmount.innerHTML = `$${formatMoneyParts(calc.total).int}<span class="text-xs font-bold text-slate-500">.${formatMoneyParts(calc.total).dec}</span>`;
-      } else if (currentData.advancePct === 100) {
-        advanceLabel.textContent = 'Pago 100%';
-        advanceAmount.innerHTML = `$${formatMoneyParts(calc.total).int}<span class="text-xs font-bold text-slate-500">.${formatMoneyParts(calc.total).dec}</span>`;
-        restLabel.textContent = 'Restante';
-        restAmount.innerHTML = `<span class="text-base font-bold text-slate-500">$0.00</span>`;
+        const [restInt, restDec] = splitCurrency(totals.rest);
+        document.getElementById('view-rest-int').textContent = restInt;
+        document.getElementById('view-rest-dec').textContent = `.${restDec}`;
       } else {
-        advanceLabel.textContent = `Anticipo (${currentData.advancePct}%)`;
-        const advParts = formatMoneyParts(calc.advance);
-        advanceAmount.innerHTML = `$${advParts.int}<span class="text-xs font-bold text-slate-500">.${advParts.dec}</span>`;
-
-        restLabel.textContent = `Restante (${100 - currentData.advancePct}%)`;
-        const restParts = formatMoneyParts(calc.rest);
-        restAmount.innerHTML = `$${restParts.int}<span class="text-xs font-bold text-slate-500">.${restParts.dec}</span>`;
+        splitSec.classList.add('hidden');
       }
 
-      // Pie WhatsApp
-      document.getElementById('c-biz-name-footer').textContent = currentData.biz.name;
-      const cleanPhone = currentData.biz.phone.replace(/\D/g, '');
-      const waMsg = encodeURIComponent(`Hola, me interesa la cotización Folio ${currentData.folio} de ${currentData.biz.name}. Quisiera confirmar los detalles.`);
-      document.getElementById('btn-whatsapp-ask').href = `https://wa.me/52${cleanPhone}?text=${waMsg}`;
+      // 5. Footer y botón de WhatsApp directo
+      document.getElementById('view-footer-biz').textContent = currentData.biz.name || 'Nosotros';
+      document.getElementById('view-footer-phone').textContent = currentData.biz.phone || '';
+      
+      const cleanPhone = (currentData.biz.phone || '').replace(/\D/g, '');
+      const waText = encodeURIComponent(`Hola ${currentData.biz.name}, tengo una duda sobre la cotización Folio ${currentData.folio} por ${formatCurrency(totals.total)}.`);
+      const waBtn = document.getElementById('view-wa-btn');
+      if (cleanPhone) {
+        waBtn.href = `https://wa.me/52${cleanPhone}?text=${waText}`;
+        waBtn.classList.remove('opacity-50', 'pointer-events-none');
+      } else {
+        waBtn.href = '#';
+        waBtn.classList.add('opacity-50', 'pointer-events-none');
+      }
     }
 
-    // Muestra la vista cliente y oculta el editor
-    function showClientView() {
-      document.getElementById('editor-view').classList.add('hidden');
-      document.getElementById('client-view').classList.remove('hidden');
-      updateCalculationsAndPreview();
-      window.scrollTo(0, 0);
+    // Cambia entre Editor y Vista Previa del Cliente
+    function setMode(clientMode) {
+      isClientMode = clientMode;
+      const editorEl = document.getElementById('editor-view');
+      const clientEl = document.getElementById('client-view');
+      const badgeEl = document.getElementById('mode-badge');
+      const toggleText = document.getElementById('btn-toggle-text');
+
+      if (isClientMode) {
+        renderClientView();
+        editorEl.classList.add('hidden');
+        clientEl.classList.remove('hidden');
+        if (badgeEl) {
+          badgeEl.textContent = isLockedClientView ? 'Cotización Oficial' : 'Vista Previa Cliente';
+          badgeEl.className = 'text-[11px] font-medium text-blue-600';
+        }
+        if (toggleText) {
+          toggleText.textContent = 'Volver al Editor';
+        }
+      } else {
+        // Si es un cliente viendo un enlace compartido, impedir abrir el editor
+        if (isLockedClientView) return;
+        clientEl.classList.add('hidden');
+        editorEl.classList.remove('hidden');
+        if (badgeEl) {
+          badgeEl.textContent = 'Modo Editor';
+          badgeEl.className = 'text-[11px] font-medium text-emerald-600';
+        }
+        if (toggleText) {
+          toggleText.textContent = 'Vista Previa Cliente';
+        }
+      }
+      window.scrollTo({ top: 0, behavior: 'smooth' });
     }
 
-    // Genera el enlace comprimido y lo copia al portapapeles
+    function toggleMode() {
+      if (isLockedClientView) return;
+      setMode(!isClientMode);
+    }
+
+    // Construye la URL limpia y blindada (#q=...) para que nunca se pierda al abrirla en WhatsApp
+    function buildShareableUrl() {
+      const encoded = DataCodec.encode(currentData);
+      const baseUrl = `${window.location.origin}${window.location.pathname}`;
+      return `${baseUrl}#q=${encoded}`;
+    }
+
+    // Genera el enlace con los datos comprimidos y lo copia al portapapeles
     function generateAndCopyLink() {
-      // Guardar folio actual para autoincremento futuro
       if (!isNaN(parseInt(currentData.folio))) {
         localStorage.setItem('prochamba_last_folio', currentData.folio);
       }
 
-      const encoded = DataCodec.encode(currentData);
-      const fullUrl = `${window.location.origin}${window.location.pathname}?q=${encoded}`;
+      const shareUrl = buildShareableUrl();
 
-      // Copiar usando un textarea temporal
       const tempInput = document.createElement('textarea');
-      tempInput.value = fullUrl;
+      tempInput.value = shareUrl;
       document.body.appendChild(tempInput);
       tempInput.select();
       document.execCommand('copy');
       document.body.removeChild(tempInput);
 
       showToast('¡Enlace de cotización copiado al portapapeles!', '📋');
-      return fullUrl;
+      return shareUrl;
     }
 
-    // Envía enlace por WhatsApp
+    // Abre WhatsApp con el mensaje listo y el enlace de la cotización
     function sendViaWhatsApp() {
       const link = generateAndCopyLink();
       const cleanPhone = currentData.biz.phone.replace(/\D/g, '');
@@ -850,114 +973,49 @@
       window.open(`https://wa.me/52${cleanPhone}?text=${msg}`, '_blank');
     }
 
-    // Previsualización full-screen modo cliente
-    function previewClientMode() {
-      showClientView();
-      showToast('Estás viendo el visor como cliente. Usa "Crear nueva" para regresar.', '👁️');
+    // Utilidades de formato
+    function formatCurrency(num) {
+      return new Intl.NumberFormat('es-MX', {
+        style: 'currency',
+        currency: 'MXN',
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2
+      }).format(num || 0);
     }
 
-    // Descargar copia offline .html
-    function downloadSelfHTML() {
-      const blob = new Blob(['<!DOCTYPE html>\n' + document.documentElement.outerHTML], { type: 'text/html' });
-      const a = document.createElement('a');
-      a.href = URL.createObjectURL(blob);
-      a.download = `cotizador_${currentData.biz.name.toLowerCase().replace(/[^a-z0-9]/g, '_')}.html`;
-      a.click();
-      showToast('Archivo HTML descargado. Puedes subirlo a Vercel o Netlify gratis.', '📥');
-    }
-
-    // Cargar datos de ejemplo rápidos
-    function loadExampleData() {
-      currentData = {
-        biz: {
-          name: 'Soluciones MG · Hospital de Calentadores',
-          phone: '5512345678',
-          email: 'contacto@solucionesmg.com',
-          logo: '',
-          color: '#0f172a'
-        },
-        folio: '084',
-        date: new Date().toISOString().split('T')[0],
-        client: 'Arq. Mariana Ríos',
-        taxMode: 'included',
-        advancePct: 50,
-        items: [
-          { desc: 'Suministro e instalación de Calentador Solar 18 Tubos Alta Presión Stainless', qty: 1, price: 9200 },
-          { desc: 'Juego de conectores flex de acero inoxidable 3/4" y válvula de alivio térmico', qty: 1, price: 850 },
-          { desc: 'Mano de obra especializada e interconexión a red de agua caliente', qty: 1, price: 1500 }
-        ],
-        notes: 'Precios incluyen instalación básica en azotea. Válido por 15 días.\nGarantía de 5 años en tanque y tubos por defecto de fábrica.'
-      };
-      initEditorFields();
-      renderEditorItems();
-      updateCalculationsAndPreview();
-      showToast('Ejemplo cargado correctamente', '✨');
-    }
-
-    // Pestañas en Mobile Editor
-    function switchMobileTab(tab) {
-      const editBtn = document.getElementById('tab-btn-edit');
-      const prevBtn = document.getElementById('tab-btn-preview');
-      const panelEditor = document.getElementById('panel-editor');
-      const panelPreview = document.getElementById('panel-preview');
-
-      if (tab === 'edit') {
-        editBtn.className = 'flex-1 py-2.5 rounded-xl bg-white text-slate-900 shadow-sm text-center transition-all';
-        prevBtn.className = 'flex-1 py-2.5 rounded-xl text-slate-600 text-center transition-all';
-        panelEditor.classList.remove('hidden');
-        panelPreview.classList.add('hidden');
-      } else {
-        prevBtn.className = 'flex-1 py-2.5 rounded-xl bg-white text-slate-900 shadow-sm text-center transition-all';
-        editBtn.className = 'flex-1 py-2.5 rounded-xl text-slate-600 text-center transition-all';
-        panelEditor.classList.add('hidden');
-        panelPreview.classList.remove('hidden');
-      }
-    }
-
-    // Utilidades auxiliares
-    function formatNumber(num) {
-      return (num || 0).toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-    }
-
-    function formatMoneyParts(num) {
-      const formatted = formatNumber(num);
+    function splitCurrency(num) {
+      const formatted = formatCurrency(num);
       const parts = formatted.split('.');
-      return { int: parts[0], dec: parts[1] || '00' };
+      return [parts[0], parts[1] || '00'];
     }
 
-    function formatDate(dateStr) {
-      if (!dateStr) return '';
-      const [y, m, d] = dateStr.split('-');
-      return `${d}/${m}/${y}`;
+    function formatDateDisplay(isoDate) {
+      if (!isoDate) return '';
+      const parts = isoDate.split('-');
+      if (parts.length !== 3) return isoDate;
+      return `${parts[2]}/${parts[1]}/${parts[0]}`;
     }
 
-    function formatPhone(phone) {
-      const p = (phone || '').replace(/\D/g, '');
-      if (p.length === 10) {
-        return `${p.substring(0,2)} ${p.substring(2,6)} ${p.substring(6)}`;
-      }
-      return phone;
+    function escapeHtml(text) {
+      if (!text) return '';
+      return text
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
     }
 
-    function getInitials(name) {
-      if (!name) return 'MG';
-      const words = name.trim().split(/\s+/);
-      if (words.length === 1) return words[0].substring(0, 2).toUpperCase();
-      return (words[0][0] + words[1][0]).toUpperCase();
-    }
-
-    function escapeHtml(str) {
-      return (str || '').replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
-    }
-
-    function showToast(msg, icon = '✨') {
+    let toastTimer;
+    function showToast(msg, icon = '✓') {
       const toast = document.getElementById('toast');
       document.getElementById('toast-msg').textContent = msg;
       document.getElementById('toast-icon').textContent = icon;
-      toast.classList.remove('translate-y-[-100px]', 'opacity-0', 'pointer-events-none');
-      setTimeout(() => {
-        toast.classList.add('translate-y-[-100px]', 'opacity-0', 'pointer-events-none');
-      }, 3000);
+      toast.classList.remove('opacity-0', 'translate-y-3', 'pointer-events-none');
+      clearTimeout(toastTimer);
+      toastTimer = setTimeout(() => {
+        toast.classList.add('opacity-0', 'translate-y-3', 'pointer-events-none');
+      }, 3200);
     }
   </script>
 </body>
